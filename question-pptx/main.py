@@ -49,8 +49,8 @@ for question in questions:
     slide: pptx.slide.Slide = presentation.slides.add_slide(
         presentation.slide_layouts[6])
 
-    title = slide.shapes.add_textbox(Pt(20), Pt(25), Pt(680), Pt(50))
-    problem = slide.shapes.add_textbox(Pt(20), Pt(80), Pt(680), Pt(380))
+    title = slide.shapes.add_textbox(Pt(20), Pt(40), Pt(680), Pt(50))
+    problem = slide.shapes.add_textbox(Pt(20), Pt(120), Pt(680), Pt(350))
     answer = slide.shapes.add_textbox(Pt(560), Pt(450), Pt(40), Pt(40))
 
     if question['type'] == 'c':
