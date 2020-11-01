@@ -64,7 +64,7 @@ presentation: pptx.presentation.Presentation = pptx.Presentation()
 buttons: Iterable[pptx.shapes.autoshape.Shape] = []
 
 for question in questions:
-    slide: pptx.slide.Slide = presentation.slides.add_slide(
+    slide: pptx.slide.Slide = c.add_slide(
         presentation.slide_layouts[6])
 
     title = slide.shapes.add_textbox(Pt(20), Pt(40), Pt(680), Pt(50))
