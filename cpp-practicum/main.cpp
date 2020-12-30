@@ -1,5 +1,4 @@
 #include "Record.hpp"
-#include "qabstractitemview.h"
 
 #include <QApplication>
 #include <QHBoxLayout>

@@ -1,7 +1,4 @@
 #include "Record.hpp"
-#include "QAbstractitemmodel.h"
-#include "qnamespace.h"
-#include "qvariant.h"
 
 void Record::WriteTo(QFile file) {
   file.open(QFile::ReadWrite | QFile::Text | QFile::Truncate);
