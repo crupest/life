@@ -1,7 +1,9 @@
-#include "qboxlayout.h"
-#include "qtableview.h"
+#include "Record.hpp"
+#include "qabstractitemview.h"
+
 #include <QApplication>
 #include <QHBoxLayout>
+#include <QHeaderView>
 #include <QMainWindow>
 #include <QPushButton>
 #include <QTableView>
@@ -20,18 +22,34 @@ int main(int argc, char *argv[]) {
 
   QPushButton import_button(QStringLiteral("导入"));
   QPushButton export_button(QStringLiteral("导出"));
+  QPushButton add_book_button(QStringLiteral("添加书"));
+
   top_bar.addWidget(&import_button);
   top_bar.addWidget(&export_button);
   top_bar.addStretch(1);
+  top_bar.addWidget(&add_book_button);
 
   QHBoxLayout center_area;
   window_layout.addLayout(&center_area);
 
   QTableView book_view;
+  book_view.verticalHeader()->hide();
+  book_view.setSelectionBehavior(QAbstractItemView::SelectRows);
+  book_view.setEditTriggers(QAbstractItemView::DoubleClicked);
+  book_view.setSelectionMode(QAbstractItemView::SingleSelection);
   QTableView vendor_view;
 
   center_area.addWidget(&book_view);
   center_area.addWidget(&vendor_view);
+
+  Record record;
+  BookModel book_model(&record);
+
+  book_view.setModel(&book_model);
+
+  QObject::connect(&add_book_button, &QPushButton::clicked, [&book_model]() {
+    book_model.insertRow(book_model.rowCount());
+  });
 
   window.show();
 

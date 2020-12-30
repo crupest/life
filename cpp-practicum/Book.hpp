@@ -44,7 +44,7 @@ private:
   std::u16string type_;
   std::u16string author_;
   std::u16string press_;
-  int stock_count_;
+  int stock_count_ = 0;
 };
 
 QTextStream &operator>>(QTextStream &left, Book &right);
