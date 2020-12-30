@@ -1,10 +1,8 @@
 #include "Record.hpp"
 
-void Record::WriteTo(QFile file) {
-  file.open(QFile::ReadWrite | QFile::Text | QFile::Truncate);
-  QTextStream stream(&file);
-  stream.setCodec("UTF-8");
+#include <algorithm>
 
+void Record::WriteTo(QTextStream &stream) {
   stream << books_.size() << ' ' << vendors_.size() << '\n';
   for (const auto &book : books_) {
     stream << book << '\n';
@@ -14,11 +12,7 @@ void Record::WriteTo(QFile file) {
   }
 }
 
-void Record::ReadFrom(QFile file) {
-  file.open(QFile::ReadOnly | QFile::Text);
-  QTextStream stream(&file);
-  stream.setCodec("UTF-8");
-
+void Record::ReadFrom(QTextStream &stream) {
   books_.clear();
   vendors_.clear();
 
@@ -177,6 +171,173 @@ bool BookModel::removeRows(int row, int count, const QModelIndex &parent) {
   beginRemoveRows(parent, row, row + count - 1);
   record_->GetBooks().erase(record_->GetBooks().cbegin() + row,
                             record_->GetBooks().cbegin() + row + count);
+  endRemoveRows();
+  return true;
+}
+
+void BookModel::sort(int column, Qt::SortOrder order) {
+  if (column == 0) {
+    beginResetModel();
+    if (order == Qt::AscendingOrder) {
+      std::sort(record_->GetBooks().begin(), record_->GetBooks().end(),
+                [](const Book &left, const Book &right) {
+                  return left.GetIsbn() < right.GetIsbn();
+                });
+    } else {
+      std::sort(record_->GetBooks().begin(), record_->GetBooks().end(),
+                [](const Book &left, const Book &right) {
+                  return left.GetIsbn() > right.GetIsbn();
+                });
+    }
+    endResetModel();
+  } else if (column == 1) {
+    beginResetModel();
+    if (order == Qt::AscendingOrder) {
+      std::sort(record_->GetBooks().begin(), record_->GetBooks().end(),
+                [](const Book &left, const Book &right) {
+                  return left.GetTitle() < right.GetTitle();
+                });
+    } else {
+      std::sort(record_->GetBooks().begin(), record_->GetBooks().end(),
+                [](const Book &left, const Book &right) {
+                  return left.GetTitle() > right.GetTitle();
+                });
+    }
+    endResetModel();
+  }
+}
+
+int VendorModel::rowCount(const QModelIndex &parent) const {
+  if (parent.isValid())
+    return 0;
+  return static_cast<int>(record_->GetVendors().size());
+}
+
+int VendorModel::columnCount(const QModelIndex &parent) const {
+  if (parent.isValid())
+    return 0;
+  return 5;
+}
+
+QVariant VendorModel::headerData(int section, Qt::Orientation orientation,
+                                 int role) const {
+  if (role != Qt::DisplayRole)
+    return QVariant();
+  if (orientation == Qt::Horizontal) {
+    switch (section) {
+    case 0:
+      return QStringLiteral("编号");
+    case 1:
+      return QStringLiteral("名称");
+    case 2:
+      return QStringLiteral("类型");
+    case 3:
+      return QStringLiteral("地址");
+    case 4:
+      return QStringLiteral("电话");
+    default:
+      return QVariant();
+    }
+  }
+  return QVariant();
+}
+
+QVariant VendorModel::data(const QModelIndex &index, int role) const {
+  if (role != Qt::DisplayRole)
+    return QVariant();
+
+  if (!index.isValid())
+    return QVariant();
+
+  if (index.row() >= static_cast<int>(record_->GetVendors().size()) ||
+      index.row() < 0)
+    return QVariant();
+
+  int row = index.row();
+  const Vendor &vendor = record_->GetVendors()[row];
+
+  int col = index.column();
+  switch (col) {
+  case 0:
+    return vendor.GetId();
+  case 1:
+    return QString::fromStdU16String(vendor.GetName());
+  case 2:
+    return QString::fromStdU16String(vendor.GetType());
+  case 3:
+    return QString::fromStdU16String(vendor.GetAddress());
+  case 4:
+    return QString::fromStdU16String(vendor.GetPhone());
+  default:
+    return QVariant();
+  }
+}
+
+bool VendorModel::setData(const QModelIndex &index, const QVariant &value,
+                          int role) {
+  if (index.isValid() && role == Qt::EditRole) {
+    int row = index.row();
+    Vendor &vendor = record_->GetVendors()[row];
+
+    int col = index.column();
+    switch (col) {
+    case 0:
+      if (!value.canConvert<int>())
+        return false;
+      vendor.SetId(value.toInt());
+      return true;
+    case 1:
+      if (!value.canConvert<QString>())
+        return false;
+      vendor.SetName(value.toString().toStdU16String());
+      emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
+      return true;
+    case 2:
+      if (!value.canConvert<QString>())
+        return false;
+      vendor.SetType(value.toString().toStdU16String());
+      emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
+      return true;
+    case 3:
+      if (!value.canConvert<QString>())
+        return false;
+      vendor.SetAddress(value.toString().toStdU16String());
+      emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
+      return true;
+    case 4:
+      if (!value.canConvert<QString>())
+        return false;
+      vendor.SetPhone(value.toString().toStdU16String());
+      emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
+      return true;
+    default:
+      return false;
+    }
+  }
+  return false;
+}
+
+Qt::ItemFlags VendorModel::flags(const QModelIndex &index) const {
+  if (!index.isValid())
+    return Qt::ItemIsEnabled;
+
+  return QAbstractTableModel::flags(index) | Qt::ItemIsEditable;
+}
+
+bool VendorModel::insertRows(int row, int count, const QModelIndex &parent) {
+  beginInsertRows(parent, row, row + count - 1);
+  for (int i = 0; i < count; i++) {
+    record_->GetVendors().insert(record_->GetVendors().cbegin() + row,
+                                 Vendor());
+  }
+  endInsertRows();
+  return true;
+}
+
+bool VendorModel::removeRows(int row, int count, const QModelIndex &parent) {
+  beginRemoveRows(parent, row, row + count - 1);
+  record_->GetVendors().erase(record_->GetVendors().cbegin() + row,
+                              record_->GetVendors().cbegin() + row + count);
   endRemoveRows();
   return true;
 }
