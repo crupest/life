@@ -1,14 +1,7 @@
 #pragma once
 
-#include <cstddef>
 #include <exception>
-// #include <gsl/gsl>
 #include <stdexcept>
-
-// Now we have no gsl but we need gsl::index
-namespace gsl {
-using index = std::ptrdiff_t;
-}
 
 #define CRU_UNUSED(entity) static_cast<void>(entity);
 
@@ -31,33 +24,7 @@ using index = std::ptrdiff_t;
   classname(classname &&) = delete;                                            \
   classname &operator=(classname &&) = delete;
 
-namespace cru {
-class Object {
+class SerializationException : public std::runtime_error {
 public:
-  Object() = default;
-  CRU_DEFAULT_COPY(Object)
-  CRU_DEFAULT_MOVE(Object)
-  virtual ~Object() = default;
+  using runtime_error::runtime_error;
 };
-
-struct Interface {
-  Interface() = default;
-  CRU_DELETE_COPY(Interface)
-  CRU_DELETE_MOVE(Interface)
-  virtual ~Interface() = default;
-};
-
-[[noreturn]] inline void UnreachableCode() { std::terminate(); }
-
-using Index = gsl::index;
-
-// https://www.boost.org/doc/libs/1_54_0/doc/html/hash/reference.html#boost.hash_combine
-template <class T> inline void hash_combine(std::size_t &s, const T &v) {
-  std::hash<T> h;
-  s ^= h(v) + 0x9e3779b9 + (s << 6) + (s >> 2);
-}
-
-#define CRU_DEFINE_CLASS_LOG_TAG(tag)                                          \
-private:                                                                       \
-  constexpr static std::u16string_view log_tag = tag;
-} // namespace cru
