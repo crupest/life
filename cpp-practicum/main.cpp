@@ -1,32 +1,39 @@
+#include "qboxlayout.h"
+#include "qtableview.h"
 #include <QApplication>
 #include <QHBoxLayout>
 #include <QMainWindow>
 #include <QPushButton>
+#include <QTableView>
 #include <QVBoxLayout>
 #include <QWidget>
 
 int main(int argc, char *argv[]) {
   QApplication application(argc, argv);
 
-  QMainWindow main_window;
+  QWidget window;
+  QVBoxLayout window_layout;
+  window.setLayout(&window_layout);
 
-  QWidget centeral_area;
-  QVBoxLayout central_area_layout;
-  centeral_area.setLayout(&central_area_layout);
-
-  main_window.setCentralWidget(&centeral_area);
-
-  QWidget top_bar;
-  QHBoxLayout top_bar_layout;
-  top_bar.setLayout(&top_bar_layout);
-  central_area_layout.addWidget(&top_bar);
+  QHBoxLayout top_bar;
+  window_layout.addLayout(&top_bar);
 
   QPushButton import_button(QStringLiteral("导入"));
   QPushButton export_button(QStringLiteral("导出"));
-  top_bar_layout.addWidget(&import_button);
-  top_bar_layout.addWidget(&export_button);
+  top_bar.addWidget(&import_button);
+  top_bar.addWidget(&export_button);
+  top_bar.addStretch(1);
 
-  main_window.show();
+  QHBoxLayout center_area;
+  window_layout.addLayout(&center_area);
+
+  QTableView book_view;
+  QTableView vendor_view;
+
+  center_area.addWidget(&book_view);
+  center_area.addWidget(&vendor_view);
+
+  window.show();
 
   return application.exec();
 }
