@@ -1,5 +1,3 @@
-#include "qboxlayout.h"
-#include "qnamespace.h"
 #include <QApplication>
 #include <QHBoxLayout>
 #include <QMainWindow>
