@@ -4,7 +4,7 @@
 
 Transaltion: Write a program and make your CPU's usage rate 100%.
 
-Code is in `main.cpp`. Remember to not compile it with O2 optimization, or my dead cycle will be eliminated.
+Code is in `main.cpp`. Remember to not compile it with O2 optimization, or my dead loop will be eliminated.
 
 Final effect:
 ![effect](effect.png)

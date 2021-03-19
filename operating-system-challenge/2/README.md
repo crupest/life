@@ -3,3 +3,8 @@
 > ![sample](sample.jpg)
 
 Translation: Write a program and make each core of your CPU get a different but regular usage rate graph.
+
+Code is in `main.cpp`. Remember to not compile it with O2 optimization, or my loop will be eliminated.
+
+Final effect:
+![effect](effect.png)
