@@ -1,7 +1,6 @@
 {
-    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
-    "name": "cpp-praticum",
-    "version": "0.0.1",
-    "dependencies": ["ms-gsl", "qt5"]
-  }
-  
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+  "name": "cpp-praticum",
+  "version": "0.0.1",
+  "dependencies": ["ms-gsl", "qt5"]
+}
