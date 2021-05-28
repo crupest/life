@@ -82,6 +82,8 @@ void ResponseThreadProc(int socket, sockaddr_in address) {
     std::lock_guard<std::mutex> guard(cout_mutex);
     std::cout << "Succeeded to send message to " << address_string << "!\n";
   }
+
+  closesocket(socket);
 }
 
 int main() {
