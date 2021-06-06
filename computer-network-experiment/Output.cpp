@@ -1,6 +1,6 @@
 #include "Output.h"
 
-folly::MPMCQueue<Output> output_queue;
+folly::MPMCQueue<Output> output_queue(100);
 
 void OutputThread() {
   while (true) {

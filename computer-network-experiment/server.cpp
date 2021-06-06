@@ -56,6 +56,8 @@ void ResponseThreadProc(int socket, sockaddr_in address) {
 }
 
 int Main() {
+  std::thread output_thread(OutputThread);
+
   int server_socket;
 
   if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -84,7 +86,10 @@ int Main() {
     unsigned sin_size = sizeof(sockaddr_in);
     client_socket =
         accept(server_socket, reinterpret_cast<sockaddr *>(&client_address),
-               &sin_size);
+#ifdef WIN32
+               reinterpret_cast<int *>
+#endif
+               (&sin_size));
 
     if (client_socket == -1) {
       PrintErrorMessageAndExit(CRUT("Failed to accecpt"));

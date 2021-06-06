@@ -29,10 +29,9 @@ inline void SendOutput(Output output) {
   output_queue.blockingWrite(std::move(output));
 }
 
-inline void SendOutput(String output) { SendOutput(std::move(output)); }
+inline void SendOutput(String output) { SendOutput(Output{std::move(output)}); }
 
-template <typename... Args>
-void SendOutput(StringView format, Args &&...args) {
+template <typename... Args> void SendOutput(StringView format, Args &&...args) {
   output_queue.blockingWrite(fmt::format(format, std::forward<Args>(args)...));
 }
 
