@@ -3,30 +3,83 @@
  */
 
 #include <cstdlib>
-#include <ios>
 #include <iostream>
-#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
 
+#include <fmt/format.h>
+#include <folly/MPMCPipeline.h>
+#include <folly/MPMCQueue.h>
+
 #include <Windows.h>
 #include <winsock.h>
+
+#include "StringUtil.hpp"
+#include "fmt/core.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
 const auto bind_address = "127.0.0.1"; // control bind address
 const u_short port = 1234;             // control bind port
 
-// As far as I know, cout is not thread safe. So we need a lock. But this might
-// not be the best solution. We can use a queue instead to avoid block.
-std::mutex cout_mutex;
+enum class OutputType { Normal, Error };
+
+struct Output {
+  Output() = default;
+  Output(std::wstring message, OutputType type = OutputType::Normal)
+      : message(std::move(message)), type(type) {}
+
+  CRU_DEFAULT_COPY(Output)
+  CRU_DEFAULT_MOVE(Output)
+  ~Output() = default;
+
+  std::wstring message;
+  OutputType type;
+};
+
+folly::MPMCQueue<Output> output_queue;
+
+void SendOutput(std::wstring output) {
+  output_queue.blockingWrite(std::move(output));
+}
+
+void SendOutput(Output output) {
+  output_queue.blockingWrite(std::move(output));
+}
+
+template <typename... Args>
+void SendOutput(std::wstring_view format, Args &&...args) {
+  output_queue.blockingWrite(fmt::format(format, std::forward<Args>(args)...));
+}
+
+template <typename... Args>
+void SendOutput(OutputType type, std::wstring_view format, Args &&...args) {
+  output_queue.blockingWrite(
+      {fmt::format(format, std::forward<Args>(args)...), type});
+}
+
+void OutputThread() {
+  while (true) {
+    Output output;
+    output_queue.blockingRead(output);
+    switch (output.type) {
+    case OutputType::Error:
+      std::wcerr << output.message;
+      break;
+    default:
+      std::wcout << output.message;
+      break;
+    }
+  }
+}
 
 [[noreturn]] void
 PrintErrorMessageAndExit(std::wstring_view message,
                          std::optional<int> error_code = std::nullopt) {
-  std::wcerr << message << L'\n';
+
+  SendOutput(L"{}\n", message);
 
   if (error_code) {
     std::cerr << L"Error code is " << std::hex << *error_code << L'\n';
@@ -48,10 +101,7 @@ PrintErrorMessageAndExit(std::wstring_view message,
 
 void ResponseThreadProc(int socket, sockaddr_in address) {
   auto address_string = inet_ntoa(address.sin_addr);
-  {
-    std::lock_guard<std::mutex> guard(cout_mutex);
-    std::cout << "Connected to " << address_string << "!\n";
-  }
+  SendOutput(L"Connected to {}!\n", cru::ToUtf16WString(address_string));
 
   const std::string_view buffer = "Love you!!! By crupest!";
 
@@ -69,7 +119,6 @@ void ResponseThreadProc(int socket, sockaddr_in address) {
 
     // send failed
     if (byte_actually_sent == SOCKET_ERROR) {
-      std::lock_guard<std::mutex> guard(cout_mutex);
       std::cerr << "Failed to send!\n";
       closesocket(socket);
       break;
@@ -78,10 +127,8 @@ void ResponseThreadProc(int socket, sockaddr_in address) {
     byte_count_sent += byte_actually_sent;
   }
 
-  {
-    std::lock_guard<std::mutex> guard(cout_mutex);
-    std::cout << "Succeeded to send message to " << address_string << "!\n";
-  }
+  SendOutput(L"Succeeded to send message to {} !\n",
+             cru::ToUtf16WString(address_string));
 
   closesocket(socket);
 }

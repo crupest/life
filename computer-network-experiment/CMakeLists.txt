@@ -7,8 +7,13 @@ project(network-experiment)
 
 set(CMAKE_CXX_STANDARD 17)
 
+find_package(fmt CONFIG REQUIRED)
+find_package(Microsoft.GSL CONFIG REQUIRED)
+add_library(base STATIC StringUtil.cpp)
+target_link_libraries(base PUBLIC Microsoft.GSL::GSL fmt::fmt)
+
 add_executable(client client.cpp)
 
 add_executable(server server.cpp)
 find_package(folly CONFIG REQUIRED)
-target_link_libraries(server PRIVATE Folly::folly)
+target_link_libraries(server PRIVATE base Folly::folly)
