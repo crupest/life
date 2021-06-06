@@ -2,14 +2,16 @@
  *  This is the server program.
  */
 
+#include "Common.h"
 #include "Output.h"
 
-#include <cstdlib>
-#include <iostream>
 #include <optional>
-#include <string>
-#include <string_view>
 #include <thread>
+
+#ifdef WIN32
+#include <Windows.h>
+#include <winsock.h>
+#endif
 
 const auto bind_address = "127.0.0.1"; // control bind address
 const u_short port = 1234;             // control bind port
@@ -48,11 +50,7 @@ void ResponseThreadProc(int socket, sockaddr_in address) {
   closesocket(socket);
 }
 
-int main() {
-#ifdef WIN32
-  InitWSA();
-#endif
-
+int Main() {
   int server_socket;
 
   if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {

@@ -5,7 +5,6 @@
 #ifdef WIN32
 #include <Windows.h>
 #include <winsock.h>
-#pragma comment(lib, "Ws2_32.lib")
 #endif
 
 [[noreturn]] void PrintErrorMessageAndExit(StringView message,
@@ -46,3 +45,17 @@ void InitWSA() {
   }
 }
 #endif
+
+int main() {
+#ifdef WIN32
+  InitWSA();
+#endif
+
+  int c = Main();
+
+#ifdef WIN32
+  WSACleanup();
+#endif
+
+  return c;
+}

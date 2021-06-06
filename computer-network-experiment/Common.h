@@ -14,6 +14,8 @@ inline auto &output_stream = std::wcout;
 inline auto &error_stream = std::wcerr;
 #define CRUT(string_literal) L##string_literal
 
+int Main();
+
 inline String ConvertCharString(std::string_view s) {
   return cru::ToUtf16WString(s);
 }
