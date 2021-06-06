@@ -1,2 +1,5 @@
 *.exe
 *.pdb
+.cache
+build
+compile_commands.json
