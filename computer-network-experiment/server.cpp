@@ -2,6 +2,8 @@
  *  This is the server program.
  */
 
+#include "Output.h"
+
 #include <cstdlib>
 #include <iostream>
 #include <optional>
@@ -9,71 +11,14 @@
 #include <string_view>
 #include <thread>
 
-#include <fmt/format.h>
-#include <folly/MPMCPipeline.h>
-#include <folly/MPMCQueue.h>
-
 #include <Windows.h>
 #include <winsock.h>
-
-#include "StringUtil.hpp"
-#include "fmt/core.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
 const auto bind_address = "127.0.0.1"; // control bind address
 const u_short port = 1234;             // control bind port
 
-enum class OutputType { Normal, Error };
-
-struct Output {
-  Output() = default;
-  Output(std::wstring message, OutputType type = OutputType::Normal)
-      : message(std::move(message)), type(type) {}
-
-  CRU_DEFAULT_COPY(Output)
-  CRU_DEFAULT_MOVE(Output)
-  ~Output() = default;
-
-  std::wstring message;
-  OutputType type;
-};
-
-folly::MPMCQueue<Output> output_queue;
-
-void SendOutput(std::wstring output) {
-  output_queue.blockingWrite(std::move(output));
-}
-
-void SendOutput(Output output) {
-  output_queue.blockingWrite(std::move(output));
-}
-
-template <typename... Args>
-void SendOutput(std::wstring_view format, Args &&...args) {
-  output_queue.blockingWrite(fmt::format(format, std::forward<Args>(args)...));
-}
-
-template <typename... Args>
-void SendOutput(OutputType type, std::wstring_view format, Args &&...args) {
-  output_queue.blockingWrite(
-      {fmt::format(format, std::forward<Args>(args)...), type});
-}
-
-void OutputThread() {
-  while (true) {
-    Output output;
-    output_queue.blockingRead(output);
-    switch (output.type) {
-    case OutputType::Error:
-      std::wcerr << output.message;
-      break;
-    default:
-      std::wcout << output.message;
-      break;
-    }
-  }
-}
 
 [[noreturn]] void
 PrintErrorMessageAndExit(std::wstring_view message,
@@ -82,15 +27,15 @@ PrintErrorMessageAndExit(std::wstring_view message,
   SendOutput(L"{}\n", message);
 
   if (error_code) {
-    std::cerr << L"Error code is " << std::hex << *error_code << L'\n';
+    SendOutput(OutputType::Error, L"Error code is {}.\n", *error_code);
     wchar_t buffer[500];
     if (!FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM |
                             FORMAT_MESSAGE_ARGUMENT_ARRAY |
                             FORMAT_MESSAGE_IGNORE_INSERTS,
                         nullptr, *error_code, 0, buffer, 500, nullptr)) {
-      std::wcerr << L"Failed to format error message.\n";
+      SendOutput(OutputType::Error, L"Failed to format error message.\n");
     } else {
-      std::wcerr << buffer << L'\n';
+      SendOutput(OutputType::Error, L"{}\n", buffer);
     }
   }
 

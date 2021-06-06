@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(fmt CONFIG REQUIRED)
 find_package(Microsoft.GSL CONFIG REQUIRED)
-add_library(base STATIC StringUtil.cpp)
+add_library(base STATIC StringUtil.cpp Output.cpp)
 target_link_libraries(base PUBLIC Microsoft.GSL::GSL fmt::fmt)
 
 add_executable(client client.cpp)
