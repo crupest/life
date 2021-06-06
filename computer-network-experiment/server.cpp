@@ -11,42 +11,12 @@
 #include <string_view>
 #include <thread>
 
-#include <Windows.h>
-#include <winsock.h>
-
-#pragma comment(lib, "Ws2_32.lib")
-
 const auto bind_address = "127.0.0.1"; // control bind address
 const u_short port = 1234;             // control bind port
 
-
-[[noreturn]] void
-PrintErrorMessageAndExit(std::wstring_view message,
-                         std::optional<int> error_code = std::nullopt) {
-
-  SendOutput(L"{}\n", message);
-
-  if (error_code) {
-    SendOutput(OutputType::Error, L"Error code is {}.\n", *error_code);
-    wchar_t buffer[500];
-    if (!FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM |
-                            FORMAT_MESSAGE_ARGUMENT_ARRAY |
-                            FORMAT_MESSAGE_IGNORE_INSERTS,
-                        nullptr, *error_code, 0, buffer, 500, nullptr)) {
-      SendOutput(OutputType::Error, L"Failed to format error message.\n");
-    } else {
-      SendOutput(OutputType::Error, L"{}\n", buffer);
-    }
-  }
-
-  WSACleanup();
-
-  std::exit(1);
-}
-
 void ResponseThreadProc(int socket, sockaddr_in address) {
   auto address_string = inet_ntoa(address.sin_addr);
-  SendOutput(L"Connected to {}!\n", cru::ToUtf16WString(address_string));
+  SendOutput(CRUT("Connected to {}!\n"), ConvertCharString(address_string));
 
   const std::string_view buffer = "Love you!!! By crupest!";
 
@@ -72,23 +42,21 @@ void ResponseThreadProc(int socket, sockaddr_in address) {
     byte_count_sent += byte_actually_sent;
   }
 
-  SendOutput(L"Succeeded to send message to {} !\n",
-             cru::ToUtf16WString(address_string));
+  SendOutput(CRUT("Succeeded to send message to {} !\n"),
+             ConvertCharString(address_string));
 
   closesocket(socket);
 }
 
 int main() {
-  WSADATA wsa_data;
-
-  if (WSAStartup(MAKEWORD(2, 2), &wsa_data)) { // initialize wsa
-    PrintErrorMessageAndExit(L"Failed to initialize wsa.", WSAGetLastError());
-  }
+#ifdef WIN32
+  InitWSA();
+#endif
 
   int server_socket;
 
   if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
-    PrintErrorMessageAndExit(L"Failed to create socket.", WSAGetLastError());
+    PrintErrorMessageAndExit(CRUT("Failed to create socket."));
   }
 
   sockaddr_in server_address;
@@ -100,11 +68,11 @@ int main() {
 
   if (bind(server_socket, reinterpret_cast<sockaddr *>(&server_address),
            sizeof(sockaddr_in)) == SOCKET_ERROR) {
-    PrintErrorMessageAndExit(L"Failed to bind.", WSAGetLastError());
+    PrintErrorMessageAndExit(CRUT("Failed to bind."));
   }
 
   if (listen(server_socket, SOMAXCONN) == SOCKET_ERROR) {
-    PrintErrorMessageAndExit(L"Failed to listen.", WSAGetLastError());
+    PrintErrorMessageAndExit(CRUT("Failed to listen."));
   }
 
   while (true) {
@@ -116,7 +84,7 @@ int main() {
                &sin_size);
 
     if (client_socket == INVALID_SOCKET) {
-      PrintErrorMessageAndExit(L"Failed to accecpt", WSAGetLastError());
+      PrintErrorMessageAndExit(CRUT("Failed to accecpt"));
     }
 
     std::thread response_thread(ResponseThreadProc, client_socket,

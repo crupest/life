@@ -8,10 +8,10 @@ void OutputThread() {
     output_queue.blockingRead(output);
     switch (output.type) {
     case OutputType::Error:
-      std::wcerr << output.message;
+      error_stream << output.message;
       break;
     default:
-      std::wcout << output.message;
+      output_stream << output.message;
       break;
     }
   }

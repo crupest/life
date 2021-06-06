@@ -1,24 +1,25 @@
 #pragma once
+#include "Common.h"
 #include "StringUtil.hpp"
-
-#include <iostream>
 
 #include <fmt/format.h>
 #include <folly/MPMCPipeline.h>
 #include <folly/MPMCQueue.h>
 
+#include <iostream>
+
 enum class OutputType { Normal, Error };
 
 struct Output {
   Output() = default;
-  Output(std::wstring message, OutputType type = OutputType::Normal)
+  Output(String message, OutputType type = OutputType::Normal)
       : message(std::move(message)), type(type) {}
 
   CRU_DEFAULT_COPY(Output)
   CRU_DEFAULT_MOVE(Output)
   ~Output() = default;
 
-  std::wstring message;
+  String message;
   OutputType type;
 };
 
@@ -28,17 +29,15 @@ inline void SendOutput(Output output) {
   output_queue.blockingWrite(std::move(output));
 }
 
-inline void SendOutput(std::wstring output) {
-  SendOutput(std::move(output));
-}
+inline void SendOutput(String output) { SendOutput(std::move(output)); }
 
 template <typename... Args>
-void SendOutput(std::wstring_view format, Args &&...args) {
+void SendOutput(StringView format, Args &&...args) {
   output_queue.blockingWrite(fmt::format(format, std::forward<Args>(args)...));
 }
 
 template <typename... Args>
-void SendOutput(OutputType type, std::wstring_view format, Args &&...args) {
+void SendOutput(OutputType type, StringView format, Args &&...args) {
   output_queue.blockingWrite(
       Output{fmt::format(format, std::forward<Args>(args)...), type});
 }
