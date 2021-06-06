@@ -8,6 +8,11 @@
 #ifdef WIN32
 #include <Windows.h>
 #include <winsock.h>
+#else
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+
 #endif
 
 const auto connect_address = "127.0.0.1"; // control connect address
@@ -16,7 +21,7 @@ const u_short port = 1234;                // control connect port
 int Main() {
   int client_socket;
 
-  if ((client_socket = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+  if ((client_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
     PrintErrorMessageAndExit(CRUT("Failed to create socket!\n"));
   }
 
@@ -28,7 +33,7 @@ int Main() {
   memset(&(server_address.sin_zero), 0, sizeof(server_address.sin_zero));
 
   if (connect(client_socket, (sockaddr *)&server_address, sizeof(sockaddr)) ==
-      SOCKET_ERROR) {
+      -1) {
     PrintErrorMessageAndExit(CRUT("Failed to connect!"));
   }
 
@@ -45,6 +50,6 @@ int Main() {
 
   SendOutput(CRUT("Received message:\n"));
 
-  closesocket(client_socket);
+  Close(client_socket);
   return 0;
 }

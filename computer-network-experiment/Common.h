@@ -14,8 +14,6 @@ inline auto &output_stream = std::wcout;
 inline auto &error_stream = std::wcerr;
 #define CRUT(string_literal) L##string_literal
 
-int Main();
-
 inline String ConvertCharString(std::string_view s) {
   return cru::ToUtf16WString(s);
 }
@@ -28,8 +26,10 @@ inline auto &output_stream = std::cout;
 inline auto &error_stream = std::cerr;
 #define CRUT(string_literal) string_literal
 
-inline String ConvertCharString(std::string_view s) { return s; }
+inline String ConvertCharString(std::string_view s) { return String(s); }
 #endif
+
+int Main();
 
 [[noreturn]] void PrintErrorMessageAndExit(StringView message,
                                            bool print_last_error = true);
@@ -37,3 +37,5 @@ inline String ConvertCharString(std::string_view s) { return s; }
 #ifdef WIN32
 void InitWSA();
 #endif
+
+int Close(int socket);

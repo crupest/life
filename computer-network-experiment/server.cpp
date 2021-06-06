@@ -11,6 +11,11 @@
 #ifdef WIN32
 #include <Windows.h>
 #include <winsock.h>
+#else
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+
 #endif
 
 const auto bind_address = "127.0.0.1"; // control bind address
@@ -35,9 +40,9 @@ void ResponseThreadProc(int socket, sockaddr_in address) {
                                    buffer.size() - byte_count_sent, 0);
 
     // send failed
-    if (byte_actually_sent == SOCKET_ERROR) {
-      std::cerr << "Failed to send!\n";
-      closesocket(socket);
+    if (byte_actually_sent == -1) {
+      SendOutput(OutputType::Error, CRUT("Failed to send!\n"));
+      Close(socket);
       break;
     }
 
@@ -47,13 +52,13 @@ void ResponseThreadProc(int socket, sockaddr_in address) {
   SendOutput(CRUT("Succeeded to send message to {} !\n"),
              ConvertCharString(address_string));
 
-  closesocket(socket);
+  Close(socket);
 }
 
 int Main() {
   int server_socket;
 
-  if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+  if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
     PrintErrorMessageAndExit(CRUT("Failed to create socket."));
   }
 
@@ -65,23 +70,23 @@ int Main() {
   memset(&(server_address.sin_zero), 0, sizeof(server_address.sin_zero));
 
   if (bind(server_socket, reinterpret_cast<sockaddr *>(&server_address),
-           sizeof(sockaddr_in)) == SOCKET_ERROR) {
+           sizeof(sockaddr_in)) == -1) {
     PrintErrorMessageAndExit(CRUT("Failed to bind."));
   }
 
-  if (listen(server_socket, SOMAXCONN) == SOCKET_ERROR) {
+  if (listen(server_socket, SOMAXCONN) == -1) {
     PrintErrorMessageAndExit(CRUT("Failed to listen."));
   }
 
   while (true) {
     sockaddr_in client_address;
     int client_socket;
-    int sin_size = sizeof(sockaddr_in);
+    unsigned sin_size = sizeof(sockaddr_in);
     client_socket =
         accept(server_socket, reinterpret_cast<sockaddr *>(&client_address),
                &sin_size);
 
-    if (client_socket == INVALID_SOCKET) {
+    if (client_socket == -1) {
       PrintErrorMessageAndExit(CRUT("Failed to accecpt"));
     }
 

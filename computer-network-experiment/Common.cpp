@@ -5,6 +5,11 @@
 #ifdef WIN32
 #include <Windows.h>
 #include <winsock.h>
+#else
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/unistd.h>
 #endif
 
 [[noreturn]] void PrintErrorMessageAndExit(StringView message,
@@ -45,6 +50,14 @@ void InitWSA() {
   }
 }
 #endif
+
+int Close(int socket) {
+#ifdef WIN32
+  return closesocket(socket);
+#else
+  return close(socket);
+#endif
+}
 
 int main() {
 #ifdef WIN32
