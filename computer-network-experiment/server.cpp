@@ -22,34 +22,13 @@ const u_short port = 1234;             // control bind port
 
 void ResponseThreadProc(int socket, sockaddr_in address) {
   auto address_string = inet_ntoa(address.sin_addr);
-  SendOutput(CRUT("Connected to {}!\n"), ConvertCharString(address_string));
 
-  const std::string_view buffer = "Love you!!! By crupest!";
+  std::string rest;
 
-  const int total_byte_count = buffer.size();
-  int byte_count_sent = 0;
-  int retry_count = 0;
+  std::string name = SafeReadUntil(socket, '\n', rest);
 
-  while (true) {
-    // Now we have sent all data.
-    if (byte_count_sent == total_byte_count)
-      break;
-
-    auto byte_actually_sent = send(socket, buffer.data() + byte_count_sent,
-                                   buffer.size() - byte_count_sent, 0);
-
-    // send failed
-    if (byte_actually_sent == -1) {
-      SendOutput(OutputType::Error, CRUT("Failed to send!\n"));
-      CloseSocket(socket);
-      break;
-    }
-
-    byte_count_sent += byte_actually_sent;
-  }
-
-  SendOutput(OutputColor::Green, CRUT("Succeeded to send message to {}!\n"),
-             ConvertCharString(address_string));
+  SendOutput(CRUT("Connected to {}, whose name is {}."),
+             ConvertCharString(address_string), ConvertCharString(name));
 
   CloseSocket(socket);
 }

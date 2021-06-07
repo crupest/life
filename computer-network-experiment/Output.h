@@ -8,6 +8,7 @@
 #include <folly/MPMCQueue.h>
 
 #include <iostream>
+#include <mutex>
 #include <thread>
 
 enum class OutputType { Normal, Error };
@@ -63,4 +64,4 @@ void OutputThread();
 
 void SignalAndWaitForOutputThreadStop();
 
-extern std::thread output_thread;
+std::lock_guard<std::mutex> BlockOutputThread();

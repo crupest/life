@@ -41,3 +41,8 @@ void InitWSA();
 int CloseSocket(int socket);
 
 void BeforeExit();
+
+String ReadInputLine();
+
+void SafeSend(int socket, std::string_view buffer);
+std::string SafeReadUntil(int socket, char c, std::string& rest);

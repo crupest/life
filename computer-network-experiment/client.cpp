@@ -37,19 +37,16 @@ int Main() {
     PrintErrorMessageAndExit(CRUT("Failed to connect!"));
   }
 
-  const int buffer_size = 100;
-  char *buffer = new char[buffer_size];
-
-  int received_number = recv(client_socket, buffer, buffer_size, 0);
-
-  if (received_number == -1) {
-    PrintErrorMessageAndExit(CRUT("Failed to recv."));
+  String name;
+  {
+    auto guard = BlockOutputThread();
+    output_stream << CRUT("Please input your name:");
+    name = ReadInputLine();
   }
 
-  std::string s(buffer, received_number);
-
-  SendOutput(OutputColor::Green, CRUT("Received message:\n"));
-  SendOutput(OutputColor::Normal, CRUT("{}\n"), ConvertCharString(s));
+  String name_data = ConvertCharString(name);
+  SafeSend(client_socket,
+           std::string_view{name_data.data(), name_data.size() + 1});
 
   CloseSocket(client_socket);
   return 0;

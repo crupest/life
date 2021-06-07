@@ -2,8 +2,11 @@
 
 #include <folly/CancellationToken.h>
 
+#include <mutex>
 #include <ostream>
 #include <type_traits>
+
+std::mutex m;
 
 folly::MPMCQueue<Output> output_queue(100);
 
@@ -44,6 +47,8 @@ void PrintOutput(const Output &output) {
 
 void OutputThread() {
   while (true) {
+    m.lock();
+
     if (cancellation_source.getToken().isCancellationRequested()) {
       while (true) {
         Output output;
@@ -58,10 +63,16 @@ void OutputThread() {
     Output output;
     if (output_queue.readIfNotEmpty(output))
       PrintOutput(output);
+
+    m.unlock();
   }
 }
 
 void SignalAndWaitForOutputThreadStop() {
   cancellation_source.requestCancellation();
   output_thread.join();
+}
+
+std::lock_guard<std::mutex> BlockOutputThread() {
+  return std::lock_guard<std::mutex>(m);
 }

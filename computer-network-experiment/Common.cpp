@@ -12,6 +12,8 @@
 #include <sys/unistd.h>
 #endif
 
+#include <string>
+
 [[noreturn]] void PrintErrorMessageAndExit(StringView message,
                                            bool print_last_error) {
 
@@ -40,6 +42,7 @@
 }
 
 #ifdef WIN32
+namespace {
 void InitWSA() {
   WSADATA wsa_data;
 
@@ -47,6 +50,8 @@ void InitWSA() {
     PrintErrorMessageAndExit(CRUT("Failed to initialize wsa."));
   }
 }
+} // namespace
+
 #endif
 
 int CloseSocket(int socket) {
@@ -63,6 +68,71 @@ void BeforeExit() {
 #endif
 
   SignalAndWaitForOutputThreadStop();
+}
+
+String ReadInputLine() {
+  String line;
+  std::getline(input_stream, line);
+  return line;
+}
+
+void SafeSend(int socket, std::string_view buffer) {
+  const int total_byte_count = buffer.size();
+  int byte_count_sent = 0;
+  int retry_count = 0;
+
+  while (true) {
+    // Now we have sent all data.
+    if (byte_count_sent == total_byte_count)
+      break;
+
+    auto byte_actually_sent = send(socket, buffer.data() + byte_count_sent,
+                                   buffer.size() - byte_count_sent, 0);
+
+    // send failed
+    if (byte_actually_sent == -1) {
+      SendOutput(OutputType::Error, CRUT("Failed to send!\n"));
+      CloseSocket(socket);
+      break;
+    }
+
+    byte_count_sent += byte_actually_sent;
+  }
+}
+
+std::string SafeReadUntil(int socket, char c, std::string &rest) {
+  std::string result = rest;
+
+  const int buffer_size = 100;
+  char *buffer = new char[buffer_size];
+
+  while (true) {
+    int received_number = recv(socket, buffer, buffer_size, 0);
+
+    if (received_number == -1) {
+      PrintErrorMessageAndExit(CRUT("Failed to recv."));
+    }
+
+    bool b = false;
+
+    for (int i = 0; i < received_number; i++) {
+      if (buffer[i] == '\n') {
+        result.append(buffer, i);
+        rest = std::string(buffer + i + 1, received_number - i - 1);
+        b = true;
+        break;
+      }
+    }
+
+    if (b)
+      break;
+
+    result.append(buffer, received_number);
+  }
+
+  delete[] buffer;
+
+  return result;
 }
 
 int main() {
