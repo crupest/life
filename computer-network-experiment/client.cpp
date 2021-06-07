@@ -44,9 +44,9 @@ int Main() {
     name = ReadInputLine();
   }
 
+  name.push_back(CRUT('\n'));
   String name_data = ConvertCharString(name);
-  SafeSend(client_socket,
-           std::string_view{name_data.data(), name_data.size() + 1});
+  SafeSend(client_socket, name_data);
 
   CloseSocket(client_socket);
   return 0;

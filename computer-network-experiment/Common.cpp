@@ -116,7 +116,7 @@ std::string SafeReadUntil(int socket, char c, std::string &rest) {
     bool b = false;
 
     for (int i = 0; i < received_number; i++) {
-      if (buffer[i] == '\n') {
+      if (buffer[i] == c) {
         result.append(buffer, i);
         rest = std::string(buffer + i + 1, received_number - i - 1);
         b = true;
