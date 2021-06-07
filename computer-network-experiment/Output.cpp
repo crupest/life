@@ -28,13 +28,16 @@ void PrintOutput(const Output &output) {
     (*stream) << output.message;
     break;
   case OutputColor::Green:
-    (*stream) << CRUT("\x1b[32m") << output.message << CRUT("\x1b[0m");
+    (*stream) << CRUT("\x1b[32m") << output.message << CRUT("\x1b[39m")
+              << std::flush;
     break;
   case OutputColor::Red:
-    (*stream) << CRUT("\x1b[31m") << output.message << CRUT("\x1b[0m");
+    (*stream) << CRUT("\x1b[31m") << output.message << CRUT("\x1b[39m")
+              << std::flush;
     break;
   case OutputColor::Yellow:
-    (*stream) << CRUT("\x1b[33m") << output.message << CRUT("\x1b[0m");
+    (*stream) << CRUT("\x1b[33m") << output.message << CRUT("\x1b[39m")
+              << std::flush;
     break;
   }
 }

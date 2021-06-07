@@ -15,7 +15,6 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-
 #endif
 
 const auto bind_address = "127.0.0.1"; // control bind address
