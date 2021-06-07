@@ -3,8 +3,7 @@
  */
 
 #include "Common.h"
-#include "Output.h"
-#include "fmt/core.h"
+#include "IO.h"
 
 #include <folly/CancellationToken.h>
 #include <folly/ProducerConsumerQueue.h>
@@ -25,7 +24,15 @@
 const auto bind_address = "127.0.0.1"; // control bind address
 const u_short port = 1234;             // control bind port
 
+void PrintHelp() {
+  SendOutput(CRUT(
+      "Input and run one of following command:\n\t> NOTHING -> Continue and "
+      "print new messages.\n\t> list -> List all connected client.\n\t> send "
+      "[i] [message] -> Send messages to client with number i.\n"));
+}
+
 struct Connection {
+  int id;
   std::thread thread;
   int socket;
   sockaddr_in address;
@@ -34,6 +41,8 @@ struct Connection {
   folly::ProducerConsumerQueue<std::string> send_queue{100};
   folly::CancellationSource cancellation_source;
 };
+
+std::vector<Connection> connections;
 
 void ResponseThreadProc(Connection *connection) {
   auto host = ConvertCharString(inet_ntoa(connection->address.sin_addr));
@@ -77,9 +86,11 @@ void ResponseThreadProc(Connection *connection) {
   CloseSocket(connection->socket);
 }
 
-int Main() {
-  std::vector<Connection> connections;
+void OnInputLine(StringView line) { StringStream ss{String(line)};
+  ss.
+ }
 
+int Main() {
   int server_socket;
 
   if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -105,6 +116,10 @@ int Main() {
   SendOutput(OutputColor::Green,
              CRUT("Now start to accept incoming connection.\n"));
 
+  StartIOThread();
+
+  int current_id = 1;
+
   while (true) {
     sockaddr_in client_address;
     int client_socket;
@@ -121,6 +136,7 @@ int Main() {
     }
 
     Connection connection;
+    connection.id = current_id++;
     connection.socket = client_socket;
     connection.address = client_address;
     connections.push_back(std::move(connection));

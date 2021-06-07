@@ -1,6 +1,6 @@
 #include "Common.h"
 
-#include "Output.h"
+#include "IO.h"
 
 #ifdef WIN32
 #include <Windows.h>
@@ -68,12 +68,6 @@ void BeforeExit() {
 #endif
 
   SignalAndWaitForOutputThreadStop();
-}
-
-String ReadInputLine() {
-  String line;
-  std::getline(input_stream, line);
-  return line;
 }
 
 void SafeSend(int socket, std::string_view buffer) {

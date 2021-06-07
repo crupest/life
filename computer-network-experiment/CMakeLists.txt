@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(fmt CONFIG REQUIRED)
 find_package(Microsoft.GSL CONFIG REQUIRED)
-add_library(base STATIC Common.cpp StringUtil.cpp Output.cpp)
+add_library(base STATIC Common.cpp StringUtil.cpp IO.cpp)
 target_link_libraries(base PUBLIC Microsoft.GSL::GSL fmt::fmt Folly::folly)
 if(WIN32)
 target_link_libraries(base PUBLIC Ws2_32)

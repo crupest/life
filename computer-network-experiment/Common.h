@@ -2,6 +2,7 @@
 #include "StringUtil.hpp"
 
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <string_view>
 
@@ -9,6 +10,7 @@
 using Char = wchar_t;
 using String = std::wstring;
 using StringView = std::wstring_view;
+using StringStream = std::wstringstream;
 inline auto &input_stream = std::wcin;
 inline auto &output_stream = std::wcout;
 inline auto &error_stream = std::wcerr;
@@ -25,6 +27,7 @@ inline std::string ConvertCharStringBack(StringView s) {
 using Char = char;
 using String = std::string;
 using StringView = std::string_view;
+using StringStream = std::stringstream;
 inline auto &input_stream = std::cin;
 inline auto &output_stream = std::cout;
 inline auto &error_stream = std::cerr;
@@ -42,8 +45,6 @@ int Main();
 int CloseSocket(int socket);
 
 void BeforeExit();
-
-String ReadInputLine();
 
 void SafeSend(int socket, std::string_view buffer);
 std::string SafeReadUntil(int socket, char c, std::string &rest);

@@ -1,18 +1,17 @@
-#include "Output.h"
+#include "IO.h"
 
 #include <folly/CancellationToken.h>
 
 #include <mutex>
 #include <ostream>
+#include <thread>
 #include <type_traits>
-
-std::mutex m;
 
 folly::MPMCQueue<Output> output_queue(100);
 
 folly::CancellationSource cancellation_source;
 
-std::thread output_thread(OutputThread);
+std::thread io_thread;
 
 void PrintOutput(const Output &output) {
   std::basic_ostream<Char> *stream;
@@ -45,11 +44,15 @@ void PrintOutput(const Output &output) {
   }
 }
 
-void OutputThread() {
-  while (true) {
-    std::lock_guard<std::mutex> guard(m);
+String ReadInputLine() {
+  String line;
+  std::getline(input_stream, line);
+  return line;
+}
 
-    if (cancellation_source.getToken().isCancellationRequested()) {
+void IOThread() {
+  while (true) {
+    if (cancellation_source.isCancellationRequested()) {
       while (true) {
         Output output;
         if (output_queue.readIfNotEmpty(output)) {
@@ -61,16 +64,17 @@ void OutputThread() {
     }
 
     Output output;
-    if (output_queue.readIfNotEmpty(output))
+    while (output_queue.readIfNotEmpty(output))
       PrintOutput(output);
+
+    PrintOutput({CRUT("> ")});
+    OnInputLine(ReadInputLine());
   }
 }
 
 void SignalAndWaitForOutputThreadStop() {
   cancellation_source.requestCancellation();
-  output_thread.join();
+  io_thread.join();
 }
 
-std::lock_guard<std::mutex> BlockOutputThread() {
-  return std::lock_guard<std::mutex>(m);
-}
+void StartIOThread() { io_thread = std::thread(IOThread); }

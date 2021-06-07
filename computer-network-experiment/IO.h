@@ -8,7 +8,6 @@
 #include <folly/MPMCQueue.h>
 
 #include <iostream>
-#include <mutex>
 #include <thread>
 
 enum class OutputType { Normal, Error };
@@ -60,8 +59,8 @@ void SendOutput(OutputColor color, StringView format, Args &&...args) {
       Output{fmt::format(format, std::forward<Args>(args)...), color});
 }
 
-void OutputThread();
-
 void SignalAndWaitForOutputThreadStop();
 
-std::lock_guard<std::mutex> BlockOutputThread();
+void OnInputLine(StringView line);
+
+void StartIOThread();

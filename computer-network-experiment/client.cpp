@@ -3,7 +3,7 @@
  */
 
 #include "Common.h"
-#include "Output.h"
+#include "IO.h"
 
 #ifdef WIN32
 #include <Windows.h>
