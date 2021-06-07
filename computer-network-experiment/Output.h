@@ -5,7 +5,9 @@
 #include <fmt/format.h>
 #include <folly/MPMCPipeline.h>
 #include <folly/MPMCQueue.h>
+#include <folly/CancellationToken.h>
 
+#include <thread>
 #include <iostream>
 
 enum class OutputType { Normal, Error };
@@ -42,3 +44,7 @@ void SendOutput(OutputType type, StringView format, Args &&...args) {
 }
 
 void OutputThread();
+
+void SignalAndWaitForOutputThreadStop();
+
+extern std::thread output_thread;

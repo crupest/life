@@ -38,4 +38,6 @@ int Main();
 void InitWSA();
 #endif
 
-int Close(int socket);
+int CloseSocket(int socket);
+
+void BeforeExit();

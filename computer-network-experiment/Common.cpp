@@ -34,9 +34,7 @@
 #endif
   }
 
-#ifdef WIN32
-  WSACleanup();
-#endif
+  BeforeExit();
 
   std::exit(1);
 }
@@ -51,12 +49,20 @@ void InitWSA() {
 }
 #endif
 
-int Close(int socket) {
+int CloseSocket(int socket) {
 #ifdef WIN32
   return closesocket(socket);
 #else
   return close(socket);
 #endif
+}
+
+void BeforeExit() {
+#ifdef WIN32
+  WSACleanup();
+#endif
+
+  SignalAndWaitForOutputThreadStop();
 }
 
 int main() {
@@ -66,9 +72,6 @@ int main() {
 
   int c = Main();
 
-#ifdef WIN32
-  WSACleanup();
-#endif
-
+  BeforeExit();
   return c;
 }

@@ -42,22 +42,20 @@ void ResponseThreadProc(int socket, sockaddr_in address) {
     // send failed
     if (byte_actually_sent == -1) {
       SendOutput(OutputType::Error, CRUT("Failed to send!\n"));
-      Close(socket);
+      CloseSocket(socket);
       break;
     }
 
     byte_count_sent += byte_actually_sent;
   }
 
-  SendOutput(CRUT("Succeeded to send message to {} !\n"),
+  SendOutput(CRUT("Succeeded to send message to {}!\n"),
              ConvertCharString(address_string));
 
-  Close(socket);
+  CloseSocket(socket);
 }
 
 int Main() {
-  std::thread output_thread(OutputThread);
-
   int server_socket;
 
   if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -81,6 +79,8 @@ int Main() {
   }
 
   while (true) {
+    SendOutput(CRUT("Now start to accept incoming connection.\n"));
+
     sockaddr_in client_address;
     int client_socket;
     unsigned sin_size = sizeof(sockaddr_in);
@@ -92,7 +92,7 @@ int Main() {
                (&sin_size));
 
     if (client_socket == -1) {
-      PrintErrorMessageAndExit(CRUT("Failed to accecpt"));
+      PrintErrorMessageAndExit(CRUT("Failed to accecpt."));
     }
 
     std::thread response_thread(ResponseThreadProc, client_socket,
