@@ -47,7 +47,7 @@ void PrintOutput(const Output &output) {
 
 void OutputThread() {
   while (true) {
-    m.lock();
+    std::lock_guard<std::mutex> guard(m);
 
     if (cancellation_source.getToken().isCancellationRequested()) {
       while (true) {
@@ -63,8 +63,6 @@ void OutputThread() {
     Output output;
     if (output_queue.readIfNotEmpty(output))
       PrintOutput(output);
-
-    m.unlock();
   }
 }
 

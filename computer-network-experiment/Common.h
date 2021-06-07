@@ -17,6 +17,10 @@ inline auto &error_stream = std::wcerr;
 inline String ConvertCharString(std::string_view s) {
   return cru::ToUtf16WString(s);
 }
+
+inline std::string ConvertCharStringBack(StringView s) {
+  return cru::ToUtf8(s);
+}
 #else
 using Char = char;
 using String = std::string;
@@ -27,16 +31,13 @@ inline auto &error_stream = std::cerr;
 #define CRUT(string_literal) string_literal
 
 inline String ConvertCharString(std::string_view s) { return String(s); }
+inline std::string ConvertCharStringBack(StringView s) { return {s}; }
 #endif
 
 int Main();
 
 [[noreturn]] void PrintErrorMessageAndExit(StringView message,
                                            bool print_last_error = true);
-
-#ifdef WIN32
-void InitWSA();
-#endif
 
 int CloseSocket(int socket);
 
@@ -45,4 +46,4 @@ void BeforeExit();
 String ReadInputLine();
 
 void SafeSend(int socket, std::string_view buffer);
-std::string SafeReadUntil(int socket, char c, std::string& rest);
+std::string SafeReadUntil(int socket, char c, std::string &rest);

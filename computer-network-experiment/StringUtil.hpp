@@ -130,6 +130,7 @@ std::string ToUtf8(std::u16string_view s);
 std::u16string ToUtf16(std::string_view s);
 
 #ifdef WIN32
+std::string ToUtf8(std::wstring_view s);
 std::wstring ToUtf16WString(std::string_view s);
 #endif
 

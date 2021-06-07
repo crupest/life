@@ -45,7 +45,7 @@ int Main() {
   }
 
   name.push_back(CRUT('\n'));
-  String name_data = ConvertCharString(name);
+  auto name_data = ConvertCharStringBack(name);
   SafeSend(client_socket, name_data);
 
   CloseSocket(client_socket);
