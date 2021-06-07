@@ -48,7 +48,8 @@ int Main() {
 
   std::string s(buffer, received_number);
 
-  SendOutput(CRUT("Received message:\n{}\n"), ConvertCharString(s));
+  SendOutput(OutputColor::Green, CRUT("Received message:\n"));
+  SendOutput(OutputColor::Normal, CRUT("{}\n"), ConvertCharString(s));
 
   CloseSocket(client_socket);
   return 0;

@@ -1,5 +1,9 @@
 #include "Output.h"
-#include "folly/CancellationToken.h"
+
+#include <folly/CancellationToken.h>
+
+#include <ostream>
+#include <type_traits>
 
 folly::MPMCQueue<Output> output_queue(100);
 
@@ -8,12 +12,29 @@ folly::CancellationSource cancellation_source;
 std::thread output_thread(OutputThread);
 
 void PrintOutput(const Output &output) {
+  std::basic_ostream<Char> *stream;
+
   switch (output.type) {
   case OutputType::Error:
-    error_stream << output.message;
+    stream = &error_stream;
     break;
   default:
-    output_stream << output.message;
+    stream = &output_stream;
+    break;
+  }
+
+  switch (output.color) {
+  case OutputColor::Normal:
+    (*stream) << output.message;
+    break;
+  case OutputColor::Green:
+    (*stream) << CRUT("\x1b[32m") << output.message << CRUT("\x1b[0m");
+    break;
+  case OutputColor::Red:
+    (*stream) << CRUT("\x1b[31m") << output.message << CRUT("\x1b[0m");
+    break;
+  case OutputColor::Yellow:
+    (*stream) << CRUT("\x1b[33m") << output.message << CRUT("\x1b[0m");
     break;
   }
 }

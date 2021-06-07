@@ -3,19 +3,28 @@
 #include "StringUtil.hpp"
 
 #include <fmt/format.h>
+#include <folly/CancellationToken.h>
 #include <folly/MPMCPipeline.h>
 #include <folly/MPMCQueue.h>
-#include <folly/CancellationToken.h>
 
-#include <thread>
 #include <iostream>
+#include <thread>
 
 enum class OutputType { Normal, Error };
+enum class OutputColor { Normal, Green, Red, Yellow };
 
 struct Output {
   Output() = default;
   Output(String message, OutputType type = OutputType::Normal)
-      : message(std::move(message)), type(type) {}
+      : message(std::move(message)), type(type),
+        color(type == OutputType::Error ? OutputColor::Red
+                                        : OutputColor::Normal) {}
+
+  Output(String message, OutputColor color)
+      : message(std::move(message)), type(OutputType::Normal), color(color) {}
+
+  Output(String message, OutputType type, OutputColor color)
+      : message(std::move(message)), type(type), color(color) {}
 
   CRU_DEFAULT_COPY(Output)
   CRU_DEFAULT_MOVE(Output)
@@ -23,6 +32,7 @@ struct Output {
 
   String message;
   OutputType type;
+  OutputColor color;
 };
 
 extern folly::MPMCQueue<Output> output_queue;
@@ -41,6 +51,12 @@ template <typename... Args>
 void SendOutput(OutputType type, StringView format, Args &&...args) {
   output_queue.blockingWrite(
       Output{fmt::format(format, std::forward<Args>(args)...), type});
+}
+
+template <typename... Args>
+void SendOutput(OutputColor color, StringView format, Args &&...args) {
+  output_queue.blockingWrite(
+      Output{fmt::format(format, std::forward<Args>(args)...), color});
 }
 
 void OutputThread();

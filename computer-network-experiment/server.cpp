@@ -49,7 +49,7 @@ void ResponseThreadProc(int socket, sockaddr_in address) {
     byte_count_sent += byte_actually_sent;
   }
 
-  SendOutput(CRUT("Succeeded to send message to {}!\n"),
+  SendOutput(OutputColor::Green, CRUT("Succeeded to send message to {}!\n"),
              ConvertCharString(address_string));
 
   CloseSocket(socket);
@@ -78,9 +78,10 @@ int Main() {
     PrintErrorMessageAndExit(CRUT("Failed to listen."));
   }
 
-  while (true) {
-    SendOutput(CRUT("Now start to accept incoming connection.\n"));
+  SendOutput(OutputColor::Green,
+             CRUT("Now start to accept incoming connection.\n"));
 
+  while (true) {
     sockaddr_in client_address;
     int client_socket;
     unsigned sin_size = sizeof(sockaddr_in);
