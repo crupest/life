@@ -67,6 +67,12 @@ void BeforeExit() {
 
 int main() {
 #ifdef WIN32
+  HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+  DWORD mode;
+  GetConsoleMode(h, &mode);
+  mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+  SetConsoleMode(h, mode);
+
   InitWSA();
 #endif
 
