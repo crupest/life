@@ -64,3 +64,5 @@ void SignalAndWaitForOutputThreadStop();
 void OnInputLine(StringView line);
 
 void StartIOThread();
+
+String ReadInputLine();

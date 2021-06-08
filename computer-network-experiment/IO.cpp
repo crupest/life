@@ -9,9 +9,10 @@
 
 folly::MPMCQueue<Output> output_queue(100);
 
+namespace {
 folly::CancellationSource cancellation_source;
-
 std::thread io_thread;
+}
 
 void PrintOutput(const Output &output) {
   std::basic_ostream<Char> *stream;

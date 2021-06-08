@@ -8,6 +8,8 @@
 #include <folly/CancellationToken.h>
 #include <folly/ProducerConsumerQueue.h>
 
+#include <algorithm>
+#include <memory>
 #include <optional>
 #include <stdint.h>
 #include <thread>
@@ -42,7 +44,20 @@ struct Connection {
   folly::CancellationSource cancellation_source;
 };
 
-std::vector<Connection> connections;
+std::vector<std::unique_ptr<Connection>> connections;
+
+void PrintConnections() {
+  if (connections.empty()) {
+    SendOutput(CRUT("Currently there is no connection.\n"));
+  }
+
+  String s;
+  for (const auto &connection : connections) {
+    s += fmt::format(CRUT("{}: {}({})\n"), connection->id, connection->name,
+                     connection->address_string);
+  }
+  SendOutput(s);
+}
 
 void ResponseThreadProc(Connection *connection) {
   auto host = ConvertCharString(inet_ntoa(connection->address.sin_addr));
@@ -53,7 +68,7 @@ void ResponseThreadProc(Connection *connection) {
 
   std::string n = SafeReadUntil(connection->socket, '\n', rest);
   connection->name = ConvertCharString(n);
-  SendOutput(CRUT("Connected to {}, whose name is {}."),
+  SendOutput(OutputColor::Green, CRUT("Connected to {}, whose name is {}.\n"),
              connection->address_string, connection->name);
 
   std::thread revieve_thread(
@@ -71,6 +86,7 @@ void ResponseThreadProc(Connection *connection) {
         }
       },
       connection);
+  revieve_thread.detach();
 
   while (true) {
     if (connection->cancellation_source.isCancellationRequested()) {
@@ -86,9 +102,60 @@ void ResponseThreadProc(Connection *connection) {
   CloseSocket(connection->socket);
 }
 
-void OnInputLine(StringView line) { StringStream ss{String(line)};
-  ss.
- }
+void OnInputLine(StringView line) {
+  StringStream ss{String(line)};
+
+  ss >> std::ws;
+  if (ss.eof())
+    return;
+
+  String command;
+  ss >> command;
+
+  if (command == CRUT("list")) {
+    if (!ss.eof()) {
+      SendOutput(OutputType::Error,
+                 CRUT("List command can't have arguments!\n"));
+      PrintHelp();
+    } else {
+      PrintConnections();
+    }
+    return;
+  } else if (command == CRUT("send")) {
+    int id;
+    ss >> id;
+    if (!ss) {
+      SendOutput(OutputType::Error, CRUT("Send format error!\n"));
+      PrintHelp();
+      return;
+    }
+
+    String message;
+    getline(ss, message);
+
+    if (message.empty()) {
+      SendOutput(OutputType::Error, CRUT("Send message can't be empty.!\n"));
+      PrintHelp();
+      return;
+    }
+
+    auto i = std::find_if(
+        connections.begin(), connections.end(),
+        [id](const std::unique_ptr<Connection> &c) { return c->id == id; });
+
+    if (i == connections.end()) {
+      SendOutput(OutputType::Error, CRUT("No connection with such id.!\n"));
+      return;
+    }
+
+    (*i)->send_queue.write(ConvertCharStringBack(message) + "\n");
+    return;
+  } else {
+    SendOutput(OutputType::Error, CRUT("Unkown command!\n"));
+    PrintHelp();
+    return;
+  }
+}
 
 int Main() {
   int server_socket;
@@ -116,6 +183,8 @@ int Main() {
   SendOutput(OutputColor::Green,
              CRUT("Now start to accept incoming connection.\n"));
 
+  PrintHelp();
+
   StartIOThread();
 
   int current_id = 1;
@@ -135,13 +204,14 @@ int Main() {
       PrintErrorMessageAndExit(CRUT("Failed to accecpt."));
     }
 
-    Connection connection;
-    connection.id = current_id++;
-    connection.socket = client_socket;
-    connection.address = client_address;
-    connections.push_back(std::move(connection));
+    connections.push_back(std::make_unique<Connection>());
+    const std::unique_ptr<Connection> &connection = connections.back();
 
-    connection.thread = std::thread(ResponseThreadProc, &connections.back());
-    connection.thread.detach();
+    connection->id = current_id++;
+    connection->socket = client_socket;
+    connection->address = client_address;
+    connection->thread =
+        std::thread(ResponseThreadProc, connections.back().get());
+    connection->thread.detach();
   }
 }
