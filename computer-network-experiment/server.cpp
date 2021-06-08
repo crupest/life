@@ -4,6 +4,7 @@
 
 #include "Common.h"
 #include "IO.h"
+#include "ReadWriteLock.h"
 
 #include <folly/CancellationToken.h>
 #include <folly/ProducerConsumerQueue.h>
@@ -26,12 +27,14 @@
 const auto bind_address = "127.0.0.1"; // control bind address
 const u_short port = 1234;             // control bind port
 
+namespace {
 void PrintHelp() {
   SendOutput(CRUT(
       "Input and run one of following command:\n\t> NOTHING -> Continue and "
       "print new messages.\n\t> list -> List all connected client.\n\t> send "
       "[i] [message] -> Send messages to client with number i.\n"));
 }
+} // namespace
 
 struct Connection {
   int id;
@@ -45,9 +48,24 @@ struct Connection {
   folly::CancellationSource cancellation_source;
 };
 
+namespace {
+cru::ReadWriteLock connections_lock;
 std::vector<std::unique_ptr<Connection>> connections;
 
+void RemoveConnection(int id) {
+  connections_lock.WriteLock();
+  connections.erase(
+      std::remove_if(connections.begin(), connections.end(),
+                     [id](const std::unique_ptr<Connection> &connection) {
+                       return connection->id == id;
+                     }),
+      connections.end());
+
+  connections_lock.WriteUnlock();
+}
+
 void PrintConnections() {
+  connections_lock.ReadLock();
   if (connections.empty()) {
     SendOutput(CRUT("Currently there is no connection.\n"));
   }
@@ -58,7 +76,9 @@ void PrintConnections() {
                      connection->address_string);
   }
   SendOutput(s);
+  connections_lock.ReadUnlock();
 }
+} // namespace
 
 void ResponseThreadProc(Connection *connection) {
   auto host = ConvertCharString(inet_ntoa(connection->address.sin_addr));
@@ -120,6 +140,8 @@ void ResponseThreadProc(Connection *connection) {
   }
 
   CloseSocket(connection->socket);
+
+  RemoveConnection(connection->id);
 }
 
 void OnInputLine(StringView line) {
@@ -164,7 +186,7 @@ void OnInputLine(StringView line) {
         [id](const std::unique_ptr<Connection> &c) { return c->id == id; });
 
     if (i == connections.end()) {
-      SendOutput(OutputType::Error, CRUT("No connection with such id.!\n"));
+      SendOutput(OutputType::Error, CRUT("No connection with such id.\n"));
       return;
     }
 
@@ -224,6 +246,7 @@ int Main() {
       PrintErrorMessageAndExit(CRUT("Failed to accecpt."));
     }
 
+    connections_lock.WriteLock();
     connections.push_back(std::make_unique<Connection>());
     const std::unique_ptr<Connection> &connection = connections.back();
 
@@ -233,5 +256,6 @@ int Main() {
     connection->thread =
         std::thread(ResponseThreadProc, connections.back().get());
     connection->thread.detach();
+    connections_lock.WriteUnlock();
   }
 }

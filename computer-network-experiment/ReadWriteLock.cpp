@@ -2,7 +2,6 @@
 
 #include <cassert>
 #include <memory>
-#include <pthread.h>
 
 namespace cru {
 ReadWriteLock::ReadWriteLock() {
