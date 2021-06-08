@@ -48,5 +48,7 @@ int CloseSocket(int socket);
 
 void BeforeExit();
 
-void SafeSend(int socket, std::string_view buffer);
-std::string SafeReadUntil(int socket, char c, std::string &rest);
+// Return false for error.
+bool SafeSend(int socket, std::string_view buffer);
+// Return false for error.
+bool SafeReadUntil(int socket, char c, std::string &data, std::string &rest);

@@ -1,6 +1,7 @@
 #include "Common.h"
 
 #include "IO.h"
+#include <memory>
 
 #ifdef WIN32
 #include <Windows.h>
@@ -70,7 +71,7 @@ void BeforeExit() {
   SignalAndWaitForOutputThreadStop();
 }
 
-void SafeSend(int socket, std::string_view buffer) {
+bool SafeSend(int socket, std::string_view buffer) {
   const int total_byte_count = buffer.size();
   int byte_count_sent = 0;
   int retry_count = 0;
@@ -78,55 +79,49 @@ void SafeSend(int socket, std::string_view buffer) {
   while (true) {
     // Now we have sent all data.
     if (byte_count_sent == total_byte_count)
-      break;
+      return true;
 
     auto byte_actually_sent = send(socket, buffer.data() + byte_count_sent,
                                    buffer.size() - byte_count_sent, 0);
 
     // send failed
     if (byte_actually_sent == -1) {
-      SendOutput(OutputType::Error, CRUT("Failed to send!\n"));
-      CloseSocket(socket);
-      break;
+      return false;
     }
 
     byte_count_sent += byte_actually_sent;
   }
 }
 
-std::string SafeReadUntil(int socket, char c, std::string &rest) {
-  std::string result = rest;
+bool SafeReadUntil(int socket, char c, std::string &data, std::string &rest) {
+  data = rest;
 
   const int buffer_size = 100;
-  char *buffer = new char[buffer_size];
+  char buffer[buffer_size];
 
   while (true) {
     int received_number = recv(socket, buffer, buffer_size, 0);
 
     if (received_number == -1) {
-      PrintErrorMessageAndExit(CRUT("Failed to recv."));
+      return false;
     }
 
-    bool b = false;
+    bool end = false;
 
     for (int i = 0; i < received_number; i++) {
       if (buffer[i] == c) {
-        result.append(buffer, i);
+        data.append(buffer, i);
         rest = std::string(buffer + i + 1, received_number - i - 1);
-        b = true;
+        end = true;
         break;
       }
     }
 
-    if (b)
-      break;
+    if (end)
+      return true;
 
-    result.append(buffer, received_number);
+    data.append(buffer, received_number);
   }
-
-  delete[] buffer;
-
-  return result;
 }
 
 int main() {

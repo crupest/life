@@ -36,6 +36,7 @@ void PrintHelp() {
 struct Connection {
   int id;
   std::thread thread;
+  std::thread receive_thread;
   int socket;
   sockaddr_in address;
   String address_string;
@@ -65,13 +66,19 @@ void ResponseThreadProc(Connection *connection) {
   connection->address_string = fmt::format(CRUT("{}:{}"), host, port);
 
   std::string rest;
+  std::string name_data;
+  if (!SafeReadUntil(connection->socket, '\n', name_data, rest)) {
+    SendOutput(OutputType::Error, CRUT("Failed to read name of {}.\n"),
+               connection->address_string);
+    CloseSocket(connection->socket);
+    return;
+  }
 
-  std::string n = SafeReadUntil(connection->socket, '\n', rest);
-  connection->name = ConvertCharString(n);
+  connection->name = ConvertCharString(name_data);
   SendOutput(OutputColor::Green, CRUT("Connected to {}, whose name is {}.\n"),
              connection->address_string, connection->name);
 
-  std::thread revieve_thread(
+  connection->receive_thread = std::thread(
       [](Connection *connection) {
         std::string rest;
         while (true) {
@@ -79,14 +86,22 @@ void ResponseThreadProc(Connection *connection) {
             break;
           }
 
-          std::string s = SafeReadUntil(connection->socket, '\n', rest);
+          std::string data;
+
+          if (!SafeReadUntil(connection->socket, '\n', data, rest)) {
+            SendOutput(OutputType::Error,
+                       CRUT("Failed read data from socket of {}({}).\n"),
+                       connection->name, connection->address_string);
+            connection->cancellation_source.requestCancellation();
+            return;
+          }
 
           SendOutput(CRUT("{}({}) send a message:\n{}\n"), connection->name,
-                     connection->address_string, ConvertCharString(s));
+                     connection->address_string, ConvertCharString(data));
         }
       },
       connection);
-  revieve_thread.detach();
+  connection->receive_thread.detach();
 
   while (true) {
     if (connection->cancellation_source.isCancellationRequested()) {
@@ -95,7 +110,12 @@ void ResponseThreadProc(Connection *connection) {
 
     std::string s;
     if (connection->send_queue.read(s)) {
-      SafeSend(connection->socket, s);
+      if (!SafeSend(connection->socket, s)) {
+        SendOutput(OutputType::Error, CRUT("Failed send data to {}({}).\n"),
+                   connection->name, connection->address_string);
+        connection->cancellation_source.requestCancellation();
+        break;
+      }
     }
   }
 

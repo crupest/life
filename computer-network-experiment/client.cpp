@@ -75,9 +75,12 @@ int Main() {
         break;
       }
 
-      std::string s = SafeReadUntil(client_socket, '\n', rest);
+      std::string data;
+      if (!SafeReadUntil(client_socket, '\n', data, rest)) {
+        PrintErrorMessageAndExit(CRUT("Failed to receive message.\n"));
+      }
 
-      SendOutput(CRUT("Recived a message:\n{}\n"), ConvertCharString(s));
+      SendOutput(CRUT("Recived a message:\n{}\n"), ConvertCharString(data));
     }
   });
   receive_thread.detach();
@@ -89,7 +92,9 @@ int Main() {
 
     std::string s;
     if (send_queue.read(s)) {
-      SafeSend(client_socket, s);
+      if (!SafeSend(client_socket, s)) {
+        PrintErrorMessageAndExit(CRUT("Failed to send message to server."));
+      }
     }
   }
 
