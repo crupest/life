@@ -34,7 +34,9 @@ inline auto &error_stream = std::cerr;
 #define CRUT(string_literal) string_literal
 
 inline String ConvertCharString(std::string_view s) { return String(s); }
-inline std::string ConvertCharStringBack(StringView s) { return {s}; }
+inline std::string ConvertCharStringBack(StringView s) {
+  return std::string(s);
+}
 #endif
 
 int Main();
