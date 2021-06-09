@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <tuple>
 
 namespace cru {
 class CRU_API Thread {
