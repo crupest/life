@@ -6,10 +6,6 @@
 #endif
 
 #ifdef CRU_WINDOWS
-#include <Windows.h>
-#endif
-
-#ifdef CRU_WINDOWS
 #ifdef CRU_EXPORT_API
 #define CRU_API __declspec(dllexport)
 #else
