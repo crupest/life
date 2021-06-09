@@ -2,7 +2,6 @@
 
 #include <cassert>
 #include <exception>
-#include <pthread.h>
 #include <utility>
 
 namespace cru {
