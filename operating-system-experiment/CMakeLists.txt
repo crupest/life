@@ -12,6 +12,10 @@ find_package(Microsoft.GSL CONFIG REQUIRED)
 add_library(cru_system SHARED Thread.cpp)
 target_link_libraries(cru_system PUBLIC Microsoft.GSL::GSL fmt::fmt)
 target_compile_definitions(cru_system PUBLIC CRU_EXPORT_API)
+if(UNIX)
+target_link_libraries(cru_system PUBLIC pthread)
+endif()
+
 
 add_executable(main main.cpp)
 target_link_libraries(main PRIVATE cru_system)

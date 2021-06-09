@@ -3,9 +3,17 @@
 
 #include "Base.h"
 
+#ifdef CRU_WINDOWS
+#include <Windows.h>
+#else
+#include <pthread.h>
+#endif
+
 #ifdef __cplusplus
 
+#include <cassert>
 #include <functional>
+#include <memory>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -39,6 +47,8 @@ private:
 #ifdef CRU_WINDOWS
   DWORD thread_id_ = 0;
   HANDLE thread_handle_ = nullptr;
+#else
+  std::unique_ptr<pthread_t> thread_;
 #endif
 };
 
@@ -46,6 +56,7 @@ namespace details {
 #ifdef CRU_WINDOWS
 CRU_API DWORD WINAPI ThreadProc(_In_ LPVOID lpParameter);
 #else
+void *ThreadProc(void *data);
 #endif
 } // namespace details
 
@@ -60,6 +71,12 @@ Thread::Thread(Fn &&process, Args &&...args) {
 #ifdef CRU_WINDOWS
   thread_handle_ = ::CreateThread(nullptr, 0, &::cru::details::ThreadProc,
                                   static_cast<void *>(p), 0, &thread_id_);
+  assert(thread_handle_);
+#else
+  thread_.reset(new pthread_t());
+  auto c = pthread_create(thread_.get(), nullptr, details::ThreadProc,
+                          static_cast<void *>(p));
+  assert(c == 0);
 #endif
 };
 } // namespace cru
