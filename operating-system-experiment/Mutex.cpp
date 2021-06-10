@@ -90,7 +90,7 @@ void Mutex::Destroy() {
 #else
   if (mutex_ != nullptr) {
     auto c = pthread_mutex_destroy(mutex_.get());
-    assert(c);
+    assert(c == 0);
     mutex_ = nullptr;
   }
 #endif
