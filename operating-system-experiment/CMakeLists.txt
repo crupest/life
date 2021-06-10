@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(fmt CONFIG REQUIRED)
 find_package(Microsoft.GSL CONFIG REQUIRED)
-add_library(cru_system SHARED Thread.cpp Mutex.cpp)
+add_library(cru_system SHARED Thread.cpp Mutex.cpp Interlocked.cpp)
 target_link_libraries(cru_system PUBLIC Microsoft.GSL::GSL fmt::fmt)
 target_compile_definitions(cru_system PUBLIC CRU_EXPORT_API)
 if(UNIX)
