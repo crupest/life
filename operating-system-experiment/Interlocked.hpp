@@ -4,7 +4,7 @@
 #include "Base.h"
 
 namespace cru {
-CRU_API void InterlockedIncrease(volatile long long *v);
+CRU_API void InterlockedAdd(volatile long long *v, long long a);
 }
 
 #endif
