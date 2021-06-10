@@ -6,7 +6,7 @@
 #endif
 
 namespace cru {
-void InterlockedAdd(volatile long long *v, long long a) {
+void CruInterlockedAdd(volatile long long *v, long long a) {
 #ifdef CRU_WINDOWS
   InterlockedAdd64(v, a);
 #else

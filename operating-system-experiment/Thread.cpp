@@ -122,7 +122,7 @@ void Thread::Destroy() noexcept {
   }
 }
 
-namespace details {
+namespace {
 #ifdef CRU_WINDOWS
 DWORD WINAPI ThreadProc(_In_ LPVOID lpParameter) {
   auto p = static_cast<std::function<void()> *>(lpParameter);
@@ -139,5 +139,19 @@ void *ThreadProc(void *data) {
 }
 
 #endif
-} // namespace details
+} // namespace
+
+void Thread::CreateThread(std::function<void()> *proc) {
+#ifdef CRU_WINDOWS
+  thread_handle_ = ::CreateThread(nullptr, 0, ThreadProc,
+                                  static_cast<void *>(proc), 0, &thread_id_);
+  assert(thread_handle_);
+#else
+  thread_.reset(new pthread_t());
+  auto c = pthread_create(thread_.get(), nullptr, ThreadProc,
+                          static_cast<void *>(proc));
+  assert(c == 0);
+#endif
+};
+
 } // namespace cru

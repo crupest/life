@@ -52,6 +52,7 @@ public:
 
 private:
   void Destroy() noexcept;
+  void CreateThread(std::function<void()> *proc);
 
 private:
   bool detached_ = false;
@@ -81,16 +82,7 @@ Thread::Thread(Fn &&process, Args &&...args) {
         std::apply(process, std::move(args));
       });
 
-#ifdef CRU_WINDOWS
-  thread_handle_ = ::CreateThread(nullptr, 0, &::cru::details::ThreadProc,
-                                  static_cast<void *>(p), 0, &thread_id_);
-  assert(thread_handle_);
-#else
-  thread_.reset(new pthread_t());
-  auto c = pthread_create(thread_.get(), nullptr, details::ThreadProc,
-                          static_cast<void *>(p));
-  assert(c == 0);
-#endif
+  CreateThread(p);
 };
 } // namespace cru
 
