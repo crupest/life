@@ -6,11 +6,11 @@
 #endif
 
 namespace cru {
-void InterlockedIncrease(volatile long long *v) {
+void InterlockedAdd(volatile long long *v, long long a) {
 #ifdef CRU_WINDOWS
-  InterlockedIncrement64(v);
+  InterlockedAdd64(v, a);
 #else
-
+  __sync_fetch_and_add(v, a);
 #endif
 }
 } // namespace cru
