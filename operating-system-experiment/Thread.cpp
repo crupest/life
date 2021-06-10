@@ -59,6 +59,36 @@ void Thread::Detach() {
   detached_ = true;
 }
 
+#ifdef CRU_WINDOWS
+DWORD
+#else
+pthread_t
+#endif
+Thread::GetNativeID() {
+#ifdef CRU_WINDOWS
+  assert(thread_handle_);
+  return thread_id_;
+#else
+  assert(thread_);
+  return *thread_;
+#endif
+}
+
+#ifdef CRU_WINDOWS
+HANDLE
+#else
+pthread_t
+#endif
+Thread::GetNativeHandle() {
+#ifdef CRU_WINDOWS
+  assert(thread_handle_);
+  return thread_handle_;
+#else
+  assert(thread_);
+  return *thread_;
+#endif
+}
+
 void Thread::swap(Thread &other) noexcept {
 #ifdef CRU_WINDOWS
   Thread temp = std::move(*this);
@@ -81,6 +111,7 @@ void Thread::Destroy() noexcept {
     detached_ = false;
     joined_ = false;
 #ifdef CRU_WINDOWS
+    thread_id_ = 0;
     thread_handle_ = nullptr;
 #else
     thread_ = nullptr;

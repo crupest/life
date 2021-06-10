@@ -9,13 +9,15 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(fmt CONFIG REQUIRED)
 find_package(Microsoft.GSL CONFIG REQUIRED)
-add_library(cru_system SHARED Thread.cpp)
+add_library(cru_system SHARED Thread.cpp Mutex.cpp)
 target_link_libraries(cru_system PUBLIC Microsoft.GSL::GSL fmt::fmt)
 target_compile_definitions(cru_system PUBLIC CRU_EXPORT_API)
 if(UNIX)
 target_link_libraries(cru_system PUBLIC pthread)
 endif()
 
-
 add_executable(main main.cpp)
 target_link_libraries(main PRIVATE cru_system)
+
+add_executable(data_race_demo DataRaceDemo.cpp)
+target_link_libraries(data_race_demo PRIVATE cru_system)

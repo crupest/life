@@ -18,7 +18,6 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-#include <tuple>
 
 namespace cru {
 class CRU_API Thread {
@@ -34,6 +33,20 @@ public:
 public:
   void Join();
   void Detach();
+
+#ifdef CRU_WINDOWS
+  DWORD
+#else
+  pthread_t
+#endif
+  GetNativeID();
+
+#ifdef CRU_WINDOWS
+  HANDLE
+#else
+  pthread_t
+#endif
+  GetNativeHandle();
 
   void swap(Thread &other) noexcept;
 
