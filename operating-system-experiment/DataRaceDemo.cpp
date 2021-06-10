@@ -21,7 +21,7 @@ int main() {
   t1.Join();
   t2.Join();
   std::cout << "Answer is " << data << ", which is "
-            << (data == 200000 ? "correct" : "false") << '\n';
+            << (data == 2000000 ? "correct" : "false") << '\n';
 
   return 0;
 }

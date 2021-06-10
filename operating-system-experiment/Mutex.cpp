@@ -1,7 +1,6 @@
 #include "Mutex.h"
 
 #include <cassert>
-#include <pthread.h>
 
 #ifndef CRU_WINDOWS
 #include <errno.h>
@@ -10,6 +9,8 @@
 namespace cru {
 Mutex::Mutex() {
 #ifdef CRU_WINDOWS
+  handle_ = CreateMutexW(nullptr, FALSE, nullptr);
+  assert(handle_);
 #else
   mutex_ = std::make_unique<pthread_mutex_t>();
 
@@ -20,16 +21,25 @@ Mutex::Mutex() {
 
 Mutex::Mutex(Mutex &&other)
 #ifdef CRU_WINDOWS
+    : handle_(other.handle_)
 #else
     : mutex_(std::move(other.mutex_))
 #endif
 {
+#ifdef CRU_WINDOWS
+  other.handle_ = nullptr;
+#endif
 }
 
 Mutex &Mutex::operator=(Mutex &&other) {
   if (this != &other) {
     Destroy();
+#ifdef CRU_WINDOWS
+    handle_ = other.handle_;
+    other.handle_ = nullptr;
+#else
     mutex_ = std::move(other.mutex_);
+#endif
   }
   return *this;
 }
@@ -38,6 +48,8 @@ Mutex::~Mutex() { Destroy(); }
 
 void Mutex::Lock() {
 #ifdef CRU_WINDOWS
+  auto c = WaitForSingleObject(handle_, INFINITE);
+  assert(c == WAIT_OBJECT_0);
 #else
   assert(mutex_);
   auto c = pthread_mutex_lock(mutex_.get());
@@ -47,6 +59,9 @@ void Mutex::Lock() {
 
 bool Mutex::TryLock() {
 #ifdef CRU_WINDOWS
+  auto c = WaitForSingleObject(handle_, 0);
+  assert(c == WAIT_OBJECT_0 || c == WAIT_TIMEOUT);
+  return c == WAIT_OBJECT_0 ? true : false;
 #else
   assert(mutex_);
   auto c = pthread_mutex_trylock(mutex_.get());
@@ -57,6 +72,8 @@ bool Mutex::TryLock() {
 
 void Mutex::Unlock() {
 #ifdef CRU_WINDOWS
+  auto c = ReleaseMutex(handle_);
+  assert(c);
 #else
   assert(mutex_);
   auto c = pthread_mutex_unlock(mutex_.get());
@@ -66,6 +83,10 @@ void Mutex::Unlock() {
 
 void Mutex::Destroy() {
 #ifdef CRU_WINDOWS
+  if (handle_ != nullptr) {
+    auto c = CloseHandle(handle_);
+    assert(c);
+  }
 #else
   if (mutex_ != nullptr) {
     auto c = pthread_mutex_destroy(mutex_.get());

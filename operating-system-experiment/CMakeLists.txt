@@ -21,3 +21,6 @@ target_link_libraries(main PRIVATE cru_system)
 
 add_executable(data_race_demo DataRaceDemo.cpp)
 target_link_libraries(data_race_demo PRIVATE cru_system)
+
+add_executable(mutex_avoid_data_race_demo MutexAvoidDataRaceDemo.cpp)
+target_link_libraries(mutex_avoid_data_race_demo PRIVATE cru_system)

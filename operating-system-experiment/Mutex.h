@@ -35,6 +35,7 @@ private:
 
 private:
 #ifdef CRU_WINDOWS
+  HANDLE handle_;
 #else
   std::unique_ptr<pthread_mutex_t> mutex_;
 #endif
