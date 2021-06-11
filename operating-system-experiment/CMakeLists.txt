@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(fmt CONFIG REQUIRED)
 find_package(Microsoft.GSL CONFIG REQUIRED)
-add_library(cru_system SHARED Thread.cpp Mutex.cpp Interlocked.cpp)
+add_library(cru_system SHARED Thread.cpp Mutex.cpp Interlocked.cpp Semaphore.cpp)
 target_link_libraries(cru_system PUBLIC Microsoft.GSL::GSL fmt::fmt)
 target_compile_definitions(cru_system PUBLIC CRU_EXPORT_API)
 if(UNIX)
@@ -27,3 +27,7 @@ target_link_libraries(mutex_avoid_data_race_demo PRIVATE cru_system)
 
 add_executable(interlocked_avoid_data_race_demo InterlockedAvoidDataRaceDemo.cpp)
 target_link_libraries(interlocked_avoid_data_race_demo PRIVATE cru_system)
+
+add_executable(semaphore_avoid_data_race_demo SemaphoreAvoidDataRaceDemo.cpp)
+target_link_libraries(semaphore_avoid_data_race_demo PRIVATE cru_system)
+
