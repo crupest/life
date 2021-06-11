@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
       if (i == thread_number - 1) {
         threads[i] = cru::Thread([&ps, start] {
           long long sum = 0;
-          for (long long j = start; j <= 1e9; j++) {
+          for (long long j = start; j <= N; j++) {
             sum += j;
           }
           ps = sum;
