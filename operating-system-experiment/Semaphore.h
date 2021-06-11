@@ -37,6 +37,7 @@ private:
 
 private:
 #ifdef CRU_WINDOWS
+  HANDLE handle_ = nullptr;
 #else
   std::unique_ptr<sem_t> semaphore_;
 #endif

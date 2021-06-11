@@ -113,7 +113,8 @@ void Thread::Destroy() noexcept {
 #ifdef CRU_WINDOWS
     thread_id_ = 0;
     if (thread_handle_ != nullptr) {
-      CloseHandle(thread_handle_);
+      auto c = CloseHandle(thread_handle_);
+      assert(c);
       thread_handle_ = nullptr;
     }
 #else

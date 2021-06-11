@@ -86,6 +86,7 @@ void Mutex::Destroy() {
   if (handle_ != nullptr) {
     auto c = CloseHandle(handle_);
     assert(c);
+    handle_ = nullptr;
   }
 #else
   if (mutex_ != nullptr) {
