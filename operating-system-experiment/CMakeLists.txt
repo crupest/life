@@ -33,3 +33,5 @@ target_link_libraries(semaphore_avoid_data_race_demo PRIVATE cru_system)
 
 add_executable(parallel_calculation_demo ParallelCalculationDemo.cpp)
 target_link_libraries(parallel_calculation_demo PRIVATE cru_system)
+
+add_executable(dead_lock_detection_demo DeadLockDetectionDemo.cpp)

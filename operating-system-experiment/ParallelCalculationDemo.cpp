@@ -12,9 +12,11 @@ int main(int argc, char **argv) {
     thread_number = std::atoi(argv[1]);
     if (thread_number <= 0) {
       std::cerr << "Argument must be a positive integer.\n";
+      return -1;
     }
   } else {
     std::cerr << "Too many arguments.\n";
+    return -1;
   }
 
   std::cout << "Use " << thread_number << " threads to calculate sum of 1-" << N

@@ -66,14 +66,6 @@ private:
 #endif
 };
 
-namespace details {
-#ifdef CRU_WINDOWS
-CRU_API DWORD WINAPI ThreadProc(_In_ LPVOID lpParameter);
-#else
-void *ThreadProc(void *data);
-#endif
-} // namespace details
-
 template <typename Fn, typename... Args>
 Thread::Thread(Fn &&process, Args &&...args) {
   std::tuple<std::decay_t<Args>...> a{std::forward<Args>(args)...};
