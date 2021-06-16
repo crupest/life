@@ -1,3 +1,13 @@
+// Demo使用方法：
+// 本程序采用标准C++11代码写成，请使用支持C++11的编译器编译。
+//
+// 程序接受的输入为n个整数对，其中1-10000表示进程，10001及以上表示锁，顺序很重要：
+// 1 10001 -> process 1 is acquiring or waiting for lock 1
+// 10001 1 -> lock 1 is owned by process 1
+//
+// 建议采用重定向输入至文件的方式输入，提供4个典型情况的测试数据。
+//
+
 #include <iostream>
 #include <unordered_map>
 #include <unordered_set>
@@ -49,9 +59,6 @@ bool dfs(
   edges.erase(root);
   return false;
 }
-
-// 1 10001 -> process 1 is waiting for lock 10001
-// 10001 1 -> lock 10001 is owned by process 1
 
 int main() {
   std::vector<int> ns;
