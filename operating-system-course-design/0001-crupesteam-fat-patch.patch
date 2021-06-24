@@ -1,0 +1,163 @@
+From e88345bbb9a4027033254933ee2e1cad9feab6d6 Mon Sep 17 00:00:00 2001
+From: crupest <crupest@outlook.com>
+Date: Thu, 24 Jun 2021 16:00:04 +0800
+Subject: [PATCH] crupesteam fat patch.
+
+---
+ fs/fat/cache.c | 64 ++++++++++++++++++++++++++++++++++++++++++++------
+ 1 file changed, 57 insertions(+), 7 deletions(-)
+
+diff --git a/fs/fat/cache.c b/fs/fat/cache.c
+index 738e427e2d21..4f32bfee6d27 100644
+--- a/fs/fat/cache.c
++++ b/fs/fat/cache.c
+@@ -15,11 +15,15 @@
+ /* this must be > 0. */
+ #define FAT_MAX_CACHE	8
+ 
++#define FAT_CACHE_PREV_CLUSTER_COUNT 8
++
+ struct fat_cache {
+ 	struct list_head cache_list;
+ 	int nr_contig;	/* number of contiguous clusters */
+ 	int fcluster;	/* cluster number in the file. */
+ 	int dcluster;	/* cluster number on disk. */
++	int prev_clusters_count;
++	int prev_clusters[FAT_CACHE_PREV_CLUSTER_COUNT];
+ };
+ 
+ struct fat_cache_id {
+@@ -27,6 +31,8 @@ struct fat_cache_id {
+ 	int nr_contig;
+ 	int fcluster;
+ 	int dcluster;
++	int prev_clusters_count;
++	int prev_clusters[FAT_CACHE_PREV_CLUSTER_COUNT];
+ };
+ 
+ static inline int fat_max_cache(struct inode *inode)
+@@ -84,10 +90,17 @@ static int fat_cache_lookup(struct inode *inode, int fclus,
+ 	static struct fat_cache nohit = { .fcluster = 0, };
+ 
+ 	struct fat_cache *hit = &nohit, *p;
+-	int offset = -1;
++	int offset = INT_MIN;
+ 
+ 	spin_lock(&MSDOS_I(inode)->cache_lru_lock);
+ 	list_for_each_entry(p, &MSDOS_I(inode)->cache_lru, cache_list) {
++		if (p->fcluster > fclus &&
++			p->fcluster - p->prev_clusters_count <= fclus) {
++				hit = p;
++				offset = fclus - hit->fcluster;
++				break;
++		}
++
+ 		/* Find the cache of "fclus" or nearest cache. */
+ 		if (p->fcluster <= fclus && hit->fcluster < p->fcluster) {
+ 			hit = p;
+@@ -107,7 +120,11 @@ static int fat_cache_lookup(struct inode *inode, int fclus,
+ 		cid->fcluster = hit->fcluster;
+ 		cid->dcluster = hit->dcluster;
+ 		*cached_fclus = cid->fcluster + offset;
+-		*cached_dclus = cid->dcluster + offset;
++
++		if (offset < 0)
++			*cached_dclus = hit->prev_clusters[hit->prev_clusters_count + offset];
++		else
++			*cached_dclus = cid->dcluster + offset;
+ 	}
+ 	spin_unlock(&MSDOS_I(inode)->cache_lru_lock);
+ 
+@@ -145,6 +162,8 @@ static void fat_cache_add(struct inode *inode, struct fat_cache_id *new)
+ 
+ 	cache = fat_cache_merge(inode, new);
+ 	if (cache == NULL) {
++		int i;
++
+ 		if (MSDOS_I(inode)->nr_caches < fat_max_cache(inode)) {
+ 			MSDOS_I(inode)->nr_caches++;
+ 			spin_unlock(&MSDOS_I(inode)->cache_lru_lock);
+@@ -172,6 +191,10 @@ static void fat_cache_add(struct inode *inode, struct fat_cache_id *new)
+ 		cache->fcluster = new->fcluster;
+ 		cache->dcluster = new->dcluster;
+ 		cache->nr_contig = new->nr_contig;
++		cache->prev_clusters_count = new->prev_clusters_count;
++		for (i = 0; i < new->prev_clusters_count; i++) {
++			cache->prev_clusters[i] = new->prev_clusters[i];
++		}
+ 	}
+ out_update_lru:
+ 	fat_cache_update_lru(inode, cache);
+@@ -220,6 +243,7 @@ static inline void cache_init(struct fat_cache_id *cid, int fclus, int dclus)
+ 	cid->fcluster = fclus;
+ 	cid->dcluster = dclus;
+ 	cid->nr_contig = 0;
++	cid->prev_clusters_count = 0;
+ }
+ 
+ int fat_get_cluster(struct inode *inode, int cluster, int *fclus, int *dclus)
+@@ -230,6 +254,10 @@ int fat_get_cluster(struct inode *inode, int cluster, int *fclus, int *dclus)
+ 	struct fat_entry fatent;
+ 	struct fat_cache_id cid;
+ 	int nr;
++	int offset;
++	int prev_cluster[FAT_CACHE_PREV_CLUSTER_COUNT];
++	int prev_cluster_current = 0;
++	int prev_cluster_count = 0;
+ 
+ 	BUG_ON(MSDOS_I(inode)->i_start == 0);
+ 
+@@ -244,12 +272,13 @@ int fat_get_cluster(struct inode *inode, int cluster, int *fclus, int *dclus)
+ 	if (cluster == 0)
+ 		return 0;
+ 
+-	if (fat_cache_lookup(inode, cluster, &cid, fclus, dclus) < 0) {
+-		/*
+-		 * dummy, always not contiguous
+-		 * This is reinitialized by cache_init(), later.
+-		 */
++	offset = fat_cache_lookup(inode, cluster, &cid, fclus, dclus);
++
++	if (offset == INT_MIN) {
+ 		cache_init(&cid, -1, -1);
++	} else if (offset < 0) {
++		nr = 0;
++		goto out;
+ 	}
+ 
+ 	fatent_init(&fatent);
+@@ -278,10 +307,31 @@ int fat_get_cluster(struct inode *inode, int cluster, int *fclus, int *dclus)
+ 		}
+ 		(*fclus)++;
+ 		*dclus = nr;
++
++		prev_cluster[prev_cluster_current++] = *dclus;
++		if (prev_cluster_count < FAT_CACHE_PREV_CLUSTER_COUNT) {
++			prev_cluster_count++;
++		}
++		prev_cluster_current %= FAT_CACHE_PREV_CLUSTER_COUNT;
++
+ 		if (!cache_contiguous(&cid, *dclus))
+ 			cache_init(&cid, *fclus, *dclus);
+ 	}
+ 	nr = 0;
++
++	if (cid.nr_contig + 1 < FAT_CACHE_PREV_CLUSTER_COUNT) {
++		int i;
++		int count = prev_cluster_count - cid.nr_contig - 1;
++		int start = ((prev_cluster_current - prev_cluster_count)
++			+ FAT_CACHE_PREV_CLUSTER_COUNT) % FAT_CACHE_PREV_CLUSTER_COUNT; 
++
++		cid.prev_clusters_count = count;
++
++		for (i = 0; i < count; i++) {
++			cid.prev_clusters[i] = prev_cluster[(start + i) % FAT_CACHE_PREV_CLUSTER_COUNT];
++		}
++	}
++
+ 	fat_cache_add(inode, &cid);
+ out:
+ 	fatent_brelse(&fatent);
+-- 
+2.32.0
+
