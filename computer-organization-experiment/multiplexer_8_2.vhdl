@@ -15,6 +15,6 @@ begin
     else
       Y <= A0;
     end if;
-    wait for 5 ns;
+    wait for 1 ps;
   end process b;
 end behaviour;
