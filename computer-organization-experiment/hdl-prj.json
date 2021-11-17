@@ -17,6 +17,18 @@
         {
             "file": "test_bench.vhdl",
             "language": "vhdl"
+        },
+        {
+            "file": "multiplexer_1_2.vhdl",
+            "language": "vhdl"
+        },
+        {
+            "file": "multiplexer_8_2.vhdl",
+            "language": "vhdl"
+        },
+        {
+            "file": "multiplexer_32_2.vhdl",
+            "language": "vhdl"
         }
     ]
 }
