@@ -62,3 +62,25 @@ begin
     end loop;
   end process stimulus;
 end architecture test_multiplexer_32_2;
+
+architecture test_adder_32 of test_bench is
+  signal A: std_logic_vector(31 downto 0) := B"00000000000000000000000000000000";
+  signal B: std_logic_vector(31 downto 0) := B"00000000000000000000000000000000";
+  signal CIN: std_logic;
+  signal S: std_logic_vector(31 downto 0);
+  signal COUT: std_logic;
+begin
+  adder: entity work.adder_32(behavior)
+      port map (A, B, CIN, S, COUT);
+  stimulus: process is
+  begin
+    loop
+      A <= A + 1;
+      B <= B + 2;
+      CIN <= '0';
+      wait for 5 ns;
+      CIN <= '1';
+      wait for 5 ns;
+    end loop;
+  end process stimulus;
+end architecture test_adder_32;
