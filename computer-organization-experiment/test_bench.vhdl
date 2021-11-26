@@ -84,3 +84,43 @@ begin
     end loop;
   end process stimulus;
 end architecture test_adder_32;
+
+architecture test_shift_32 of test_bench is
+  signal D: std_logic_vector(31 downto 0) := B"00000000000000000000000000000011";
+  signal SA: std_logic_vector(4 downto 0) := B"00000";
+  signal Right: std_logic;
+  signal Arith: std_logic;
+  signal SH: std_logic_vector(31 downto 0);
+begin
+  shift: entity work.shift_32(behavioral)
+      port map (D, SA, Right, Arith, SH);
+  stimulus: process is
+  begin
+    loop
+      D <= B"00000000000000000000000000000011" and D;
+      Right <= '0';
+      Arith <= '0';
+      wait for 5 ns;
+      Arith <= '1';
+      wait for 5 ns;
+      Right <= '1';
+      Arith <= '0';
+      wait for 5 ns;
+      Arith <= '1';
+      wait for 5 ns;
+      D <= B"10000000000000000000000000000000" or D;
+      Right <= '0';
+      Arith <= '0';
+      wait for 5 ns;
+      Arith <= '1';
+      wait for 5 ns;
+      Right <= '1';
+      Arith <= '0';
+      wait for 5 ns;
+      Arith <= '1';
+      wait for 5 ns;
+
+      SA <= SA + 1;
+    end loop;
+  end process stimulus;
+end architecture test_shift_32;
