@@ -124,3 +124,23 @@ begin
     end loop;
   end process stimulus;
 end architecture test_shift_32;
+
+
+architecture test_alu of test_bench is
+ signal A: std_logic_vector(31 downto 0) := "00000000000000000000000000000011";
+ signal B: std_logic_vector(31 downto 0) := "00000000000000000000000000000011";
+ signal S: std_logic_vector(31 downto 0);
+ signal ALUC: std_logic_vector(3 downto 0) := "0000";
+ signal Z: std_logic;
+begin
+  alu: entity work.alu(Behavioral)
+      port map (A, B, ALUC, S, Z);
+  stimulus: process is
+  begin
+    loop
+      wait for 5 ns;
+      ALUC <= ALUC + 1;
+    end loop;
+    
+  end process stimulus;
+end architecture test_alu;
