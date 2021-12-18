@@ -33,7 +33,7 @@ Dir.entries('./out').each do |f|
 end
 
 CSV.open('./result.csv', 'w') do |csv|
-  qs = ['A-1', 'A-2', 'A-3' 'B-1', 'B-2', 'B-3', 'C-1', 'C-2', 'C-3', 'C-4']
+  qs = %w[A-1 A-2 A-3 B-1 B-2 B-3 C-1 C-2 C-3 C-4]
   csv << (['student no'] + qs)
   $result.each do |student_no, questions|
     csv << ([student_no] + qs.map { |q| questions.include?(q) ? 1 : 0 })
