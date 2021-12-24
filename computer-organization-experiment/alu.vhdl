@@ -13,8 +13,8 @@ end entity;
 architecture Behavioral of alu is
 begin
     S <= A + B when ALUC(2 downto 0) = B"000"
-         else A and B when ALUC(2 downto 0) ?= B"001"
-         else A - B when ALUC(2 downto 0) ?= B"100"
+         else A - B when ALUC(2 downto 0) ?= B"001"
+         else A and B when ALUC(2 downto 0) ?= B"100"
          else A or B when ALUC(2 downto 0) ?= B"101"
          else A xor B when ALUC(2 downto 0) ?= B"010"
          else std_logic_vector(signed(A) sll 16) and H"FFFF0000" when ALUC(2 downto 0) ?= B"110"
