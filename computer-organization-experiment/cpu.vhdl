@@ -13,9 +13,8 @@ use work.cru.all;
 entity reg is
     port (
         CLK: in std_logic; -- Rising edge -> Read; Falling edge -> Write.
-        W: in word; -- The data to write.
         ENABLE: in std_logic; -- If 1 then at falling edge of clock, W will be written.
-        ZERO: in std_logic; -- If 1 then at rising edge of clock, 0 will be output to R.
+        W: in word; -- The data to write.
         R: out word -- The data to read.
     );
 end entity;
@@ -26,11 +25,7 @@ begin
     process(CLK)
     begin
         if rising_edge(CLK) then
-            if ZERO = '1' then
-                R <= (others => '0');
-            else
-                R <= V;
-            end if;
+            R <= V;
         end if;
         if falling_edge(CLK) and ENABLE = '1' then
             V <= W;
@@ -124,7 +119,8 @@ use work.cru.all;
 
 entity ram is
     port(CLK: in std_logic;
-        D: inout word;
+        R: out word;
+        W: in word;
         ADDR: in word;
         ENABLE: in std_logic
     );
@@ -132,60 +128,54 @@ end entity;
 
 architecture Behavioral of ram is
     type memory_type is array (0 to 16#30#) of word;
-    signal memory: memory_type;
+    signal memory: memory_type := (
+                X"3c010000",
+                X"34240020",
+                X"20050004",
+                X"0c000018",
+                X"ac820000",
+                X"8c890000",
+                X"01244022",
+                X"20050003",
+                X"20a5ffff",
+                X"34a8ffff",
+                X"39085555",
+                X"2009ffff",
+                X"312affff",
+                X"01493025",
+                X"01494026",
+                X"01463824",
+                X"10a00001",
+                X"08000008",
+                X"2005ffff",
+                X"000543c0",
+                X"00084400",
+                X"00084403",
+                X"000843c2",
+                X"08000017",
+                X"00004020",
+                X"8c890000",
+                X"20840004",
+                X"01094020",
+                X"20a5ffff",
+                X"14a0fffb",
+                X"00081000",
+                X"03e00008",
+                X"000000A3",
+                X"00000027",
+                X"00000079",
+                X"00000115",
+                others => (others => '0')
+        );
     signal V: std_logic := '0';
 begin
-    init: process is
-    begin
-        memory(0 to 16#1F#) <= ( 
-            X"3c010000",
-            X"34240020",
-            X"20050004",
-            X"0c000018",
-            X"ac820000",
-            X"8c890000",
-            X"01244022",
-            X"20050003",
-            X"20a5ffff",
-            X"34a8ffff",
-            X"39085555",
-            X"2009ffff",
-            X"312affff",
-            X"01493025",
-            X"01494026",
-            X"01463824",
-            X"10a00001",
-            X"08000008",
-            X"2005ffff",
-            X"000543c0",
-            X"00084400",
-            X"00084403",
-            X"000843c2",
-            X"08000017",
-            X"00004020",
-            X"8c890000",
-            X"20840004",
-            X"01094020",
-            X"20a5ffff",
-            X"14a0fffb",
-            X"00081000",
-            X"03e00008"
-        );
-        memory(16#20# to 16#20# + 3) <= (
-            X"000000A3",
-            X"00000027",
-            X"00000079",
-            X"00000115"
-        );
-        wait;
-    end process;
     b: process(CLK) is 
     begin
         if rising_edge(CLK) then
-            D <= memory(to_integer(unsigned(ADDR)));
+            R <= memory(to_integer(unsigned(ADDR)) / 4);
         end if;
         if falling_edge(CLK) and ENABLE = '1' then
-            memory(to_integer(unsigned(ADDR))) <= D;
+            memory(to_integer(unsigned(ADDR)) / 4) <= W;
         end if;
     end process;
 end architecture;
@@ -211,7 +201,8 @@ architecture Behavioral of cpu is
     signal enable_mem: std_logic;
     signal write_mem: std_logic := '0';
     signal addr: word := X"00000000";
-    signal mem_value: word;
+    signal mem_w: word;
+    signal mem_r: word;
 
     signal WRITE_REG: std_logic := '0';
     signal R1: std_logic_vector(4 downto 0) := B"00000";
@@ -231,7 +222,6 @@ begin
         port map (
             CLK => CLK,
             ENABLE => '1',
-            ZERO => '0',
             W => pc_to_write,
             R => pc
         );
@@ -258,7 +248,8 @@ begin
     ram: entity work.ram
         port map (
             CLK => CLK,
-            D => mem_value,
+            R => mem_r,
+            W => mem_w,
             ADDR => addr,
             ENABLE => write_mem
         );
@@ -269,13 +260,14 @@ begin
         wait for 100 ps;
 
         addr <= pc;
+        pc_to_write <= pc + 4;
+
         wait for 1 ns;
-        ins <= mem_value;
-        pc_to_write <= pc + 1;
+        ins <= mem_r;
 
         WRITE_REG <= '0';
 
-        if ins(31 downto 27) ?= B"00001" then -- j / jal
+        if ins(31 downto 27) = B"00001" then -- j / jal
             if ins(26) = '1' then -- jal
                 W <= B"11111";
                 WD <= pc;
@@ -287,6 +279,9 @@ begin
                 R1 <= ins(25 downto 21);
                 R2 <= ins(20 downto 16);
                 ALUC <= ins(3 downto 0);
+
+                wait for 100 ps;
+
                 A <= RD1;
                 B <= RD2;
                 W <= ins(15 downto 11);
@@ -296,6 +291,9 @@ begin
                 R1 <= ins(20 downto 16);
                 ALUC(3 downto 2) <= ins(1 downto 0);
                 ALUC(1 downto 0) <= B"11";
+
+                wait for 100 ps;
+
                 A <= RD1;
                 B <= (4 downto 0 => ins(10 downto 6), others => '0');
                 W <= ins(15 downto 11);
@@ -304,6 +302,9 @@ begin
             else
                 R1 <= ins(25 downto 21);
                 WRITE_REG <= '0';
+
+                wait for 100 ps;
+
                 pc_to_write <= RD1;
             end if;
         else
@@ -311,6 +312,9 @@ begin
                 enable_mem <= '1';
                 R1 <= ins(25 downto 21);
                 ALUC <= B"0000";
+
+                wait for 100 ps;
+
                 A <= RD1;
                 B <= (15 downto 0 => ins(15 downto 0), others => '0' );
                 if ins(29) = '1' then
@@ -319,6 +323,8 @@ begin
                 else
                     R2 <= ins(20 downto 16);
                     write_mem <= '1';
+
+                    wait for 100 ps;
                 end if;
             elsif ins(29 downto 26) = B"1111" then
                 WRITE_REG <= '1';
@@ -327,6 +333,9 @@ begin
             elsif ins(29) = '1' then
                 R1 <= ins(25 downto 21);
                 ALUC <= ins(29 downto 26);
+
+                wait for 100 ps;
+
                 A <= RD1;
                 B(15 downto 0) <= ins(15 downto 0);
                 B(31 downto 16) <= X"0000";
@@ -337,10 +346,13 @@ begin
                 R1 <= ins(25 downto 21);
                 R2 <= ins(20 downto 16);
                 ALUC <= B"0010";
+                
+                wait for 100 ps;
+                
                 A <= RD1;
                 B <= RD2;
                 if Z = '1' then
-                    pc_to_write <= pc_to_write + ins(15 downto 0);
+                    pc_to_write <= pc_to_write + to_integer(unsigned(ins(15 downto 0)) * 4);
                 end if;
                 WRITE_REG <= '0';
             end if;
@@ -349,10 +361,10 @@ begin
         if enable_mem then
             if write_mem then
                 WRITE_REG <= '0';
-                mem_value <= RD2;
+                mem_w <= RD2;
             else
                 WRITE_REG <= '1';
-                WD <= mem_value;
+                WD <= mem_r;
             end if;
         else
             write_mem <= '0';
