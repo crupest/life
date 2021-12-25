@@ -71,7 +71,8 @@ entity alu is
         A, B: in std_logic_vector(31 downto 0);
         ALUC: in std_logic_vector(3 downto 0);
         S: out std_logic_vector(31 downto 0);
-        Z: out std_logic);
+        Z: out std_logic
+    );
 end entity;
 
 architecture Behavioral of alu is
@@ -106,6 +107,9 @@ end entity;
 architecture Behavioral of cpu is
     signal pc: std_logic_vector(31 downto 0);
     signal pc_to_write: std_logic_vector(31 downto 0);
+
+    signal enable_mem: std_logic;
+    signal write_mem: std_logic;
 
     signal CLK: in std_logic;
     signal WRITE_REG: in std_logic;
@@ -151,7 +155,20 @@ begin
         ins <= memory(to_integer(pc));
         pc_to_write <= pc + H"00000001";
 
-        if ins(31 downto 26) = B"000000" then
+        WRITE_REG <= '0';
+        enable_mem <= '0';
+
+
+        if ins(31 downto 16) = B"000010" then
+            pc_to_write(25 downto 0) <= ins(25 downto 0);
+            pc_to_write(31 downto 26) <= (others => '0');
+        else if ins(31 downto 16) = B"000011" then
+            W <= 1;
+            WD <= pc_to_write;
+            WRITE_REG <= '1';
+            pc_to_write(25 downto 0) <= ins(25 downto 0);
+            pc_to_write(31 downto 26) <= (others => '0');
+        else if ins(31 downto 26) = B"000000" then
             if ins(5) = '1' then
                 R1 <= ins(25 downto 21);
                 R2 <= ins(20 downto 16);
@@ -177,7 +194,54 @@ begin
                 pc_to_write <= RD1;
             end if;
         else
-            -- TODO: Implement this.
+            if ins(31) = '1' then
+                enable_mem <= '1';
+                R1 <= ins(25 downto 21);
+                ALUC <= B"0000";
+                A <= RD1;
+                B(15 downto 0) <= ins(15 downto 0);
+                B(31 downto 16) <= H"0000";
+                if ins(29) = '1' then
+                    W <= ins(20 downto 16);
+                    write_mem <= '0';
+                else
+                    R2 <= ins(20 downto 16);
+                    write_mem <= '1';
+                end if;
+            else if ins(29 downto 26) = B"1111" then
+                WRITE_REG <= '1';
+                W <= ins(20 downto 16);
+                WD(31 downto 16) <= ins(15 downto 0);
+            else if ins(29) = '1' then
+                R1 <= ins(25 downto 21);
+                ALUC <= ins(29 downto 26);
+                A <= RD1;
+                B(15 downto 0) <= ins(15 downto 0);
+                B(31 downto 16) <= H"0000";
+                W <= ins(20 downto 16);
+                WRITE_REG <= '1';
+                WD <= S;
+            else
+                R1 <= ins(25 downto 21);
+                R2 <= ins(20 downto 16);
+                ALUC <= B"0010";
+                A <= R1;
+                B <= R2;
+                if Z = '1' then
+                    pc_to_write <= pc_to_write + to_integer(ins(15 downto 0));
+                end if;
+                WRITE_REG <= '0';
+            end if;
+        end if;
+
+        if enable_mem then
+            if write_mem then
+                WRITE_REG <= '0';
+                memory(S) <= RD2;
+            else
+                WRITE_REG <= '1';
+                WD <= memory(S);
+            end if;
         end if;
         
     end process;
