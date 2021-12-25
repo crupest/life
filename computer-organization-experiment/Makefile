@@ -1,5 +1,8 @@
-build/cpu.o: build
-	ghdl analyze --std=08 --workdir=build -fsynopsys cpu.vhdl
+build/cpu_test_bench: build/cpu.o
+	ghdl elaborate -g --std=08 --workdir=build -fsynopsys -o build/cpu_test_bench cpu_test_bench 
+
+build/cpu.o: build cpu.vhdl
+	ghdl analyze -g --std=08 --workdir=build -fsynopsys cpu.vhdl
 
 all: build/test_bench
 
