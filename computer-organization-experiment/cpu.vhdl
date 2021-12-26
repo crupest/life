@@ -4,6 +4,7 @@ use ieee.std_logic_1164.all;
 package cru is
     subtype word is std_logic_vector(31 downto 0);
     constant clock_time : time := 10 ns;
+    constant ram_clock_time: time := 2.5 ns;
 end package;
 
 library ieee;
@@ -35,13 +36,36 @@ end architecture;
 
 library ieee;
 use ieee.std_logic_1164.all;
+use work.cru.all;
+
+entity reg_file_clock is
+    port(CLK: out std_logic);
+end entity;
+
+architecture Behavioral of reg_file_clock is
+    signal V: std_logic := '1';
+begin
+    l: process is
+    begin
+        CLK <= V;
+        wait for 1 ns;
+        loop
+            V <= not V;
+            wait for 1 ps;
+            CLK <= V;
+            wait for clock_time;
+        end loop;
+    end process;
+end architecture;
+
+library ieee;
+use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.std_logic_unsigned.all;
 use work.cru.all;
 
 entity register_file is
     port (
-        CLK: in std_logic;
         ENABLE: in std_logic;
         R1, R2, W: in std_logic_vector(4 downto 0);
         WD: in std_logic_vector(31 downto 0);
@@ -52,7 +76,10 @@ end entity;
 architecture Behavioral of register_file is
     type reg_file_type is array (0 to 31) of std_logic_vector(31 downto 0);
     signal reg_file: reg_file_type := (others => (others => '0'));
+    signal CLK : std_logic;
 begin
+    clock: entity work.reg_file_clock
+        port map (CLK);
     process (CLK)
     begin
         if rising_edge(CLK) then
@@ -91,13 +118,11 @@ begin
          else std_logic_vector(signed(A) sll to_integer(unsigned(B))) when ALUC ?= B"0011"
          else std_logic_vector(signed(A) srl to_integer(unsigned(B))) when ALUC ?= B"0111"
          else std_logic_vector(signed(A) sra to_integer(unsigned(B))) when ALUC ?= B"1111";
-    Z <= S ?= X"00000000";
+    Z <= S ?= X"00000000" after 10 ps;
 end architecture;
 
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
-use ieee.std_logic_unsigned.all;
 use work.cru.all;
 
 entity clock is
@@ -113,16 +138,41 @@ end architecture;
 
 library ieee;
 use ieee.std_logic_1164.all;
+use work.cru.all;
+
+entity ram_clock is
+    port(CLK: out std_logic);
+end entity;
+
+architecture Behavioral of ram_clock is
+    signal V: std_logic := '0';
+begin
+    l: process is
+    begin
+        CLK <= V;
+        wait for 500 ps;
+        loop
+            V <= not V;
+            wait for 1 ps;
+            CLK <= V;
+            wait for ram_clock_time;
+        end loop;
+    end process;
+end architecture;
+
+library ieee;
+use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-use ieee.std_logic_unsigned.all;
 use work.cru.all;
 
 entity ram is
-    port(CLK: in std_logic;
-        R: out word;
-        W: in word;
-        ADDR: in word;
-        ENABLE: in std_logic
+    port(
+        R_DATA: out word;
+        W_DATA: in word;
+        R_ADDR: in word;
+        W_ADDR: in word;
+        READ: in std_logic;
+        WRITE: in std_logic
     );
 end entity;
 
@@ -130,7 +180,7 @@ architecture Behavioral of ram is
     type memory_type is array (0 to 16#30#) of word;
     signal memory: memory_type := (
                 X"3c010000",
-                X"34240020",
+                X"34240080",
                 X"20050004",
                 X"0c000018",
                 X"ac820000",
@@ -168,14 +218,17 @@ architecture Behavioral of ram is
                 others => (others => '0')
         );
     signal V: std_logic := '0';
+    signal CLK: std_logic;
 begin
+    clock: entity work.ram_clock
+        port map (CLK);
     b: process(CLK) is 
     begin
-        if rising_edge(CLK) then
-            R <= memory(to_integer(unsigned(ADDR)) / 4);
+        if rising_edge(CLK) and READ = '1' then
+            R_DATA <= memory(to_integer(unsigned(R_ADDR)) / 4);
         end if;
-        if falling_edge(CLK) and ENABLE = '1' then
-            memory(to_integer(unsigned(ADDR)) / 4) <= W;
+        if falling_edge(CLK) and WRITE = '1' then
+            memory(to_integer(unsigned(W_ADDR)) / 4) <= W_DATA;
         end if;
     end process;
 end architecture;
@@ -198,17 +251,18 @@ architecture Behavioral of cpu is
 
     signal ins: word;
 
-    signal enable_mem: std_logic;
-    signal write_mem: std_logic := '0';
-    signal addr: word := X"00000000";
-    signal mem_w: word;
-    signal mem_r: word;
+    signal mem_r_addr: word := X"00000000";
+    signal mem_w_addr: word := X"00000000";
+    signal mem_r_data: word;
+    signal mem_w_data: word := X"00000000";
+    signal mem_read: std_logic := '0';
+    signal mem_write: std_logic := '0';
 
     signal WRITE_REG: std_logic := '0';
     signal R1: std_logic_vector(4 downto 0) := B"00000";
     signal R2: std_logic_vector(4 downto 0)  := B"00000";
     signal W: std_logic_vector(4 downto 0)  := B"00000";
-    signal WD: std_logic_vector(31 downto 0);
+    signal WD: std_logic_vector(31 downto 0) := X"00000000";
     signal RD1: std_logic_vector(31 downto 0) := X"00000000";
     signal RD2: std_logic_vector(31 downto 0) := X"00000000";
 
@@ -227,7 +281,6 @@ begin
         );
     reg: entity work.register_file
         port map(
-            CLK => CLK,
             ENABLE => WRITE_REG,
             R1 => R1,
             R2 => R2,
@@ -247,84 +300,112 @@ begin
 
     ram: entity work.ram
         port map (
-            CLK => CLK,
-            R => mem_r,
-            W => mem_w,
-            ADDR => addr,
-            ENABLE => write_mem
+            R_DATA => mem_r_data,
+            W_DATA => mem_w_data,
+            R_ADDR => mem_r_addr,
+            W_ADDR => mem_w_addr,
+            READ => mem_read,
+            WRITE => mem_write
         );
 
     logic: process is
     begin
         wait until rising_edge(CLK);
-        wait for 100 ps;
 
-        addr <= pc;
+        wait for 250 ps;
+
+        mem_read <= '1';
+        mem_r_addr <= pc;
         pc_to_write <= pc + 4;
 
-        wait for 1 ns;
-        ins <= mem_r;
+        wait for 500 ps;
+
+        ins <= mem_r_data;
+
+        mem_write <= '0';
 
         WRITE_REG <= '0';
+        
+        wait for 100 ps;
 
-        if ins(31 downto 27) = B"00001" then -- j / jal
+        if ins(31 downto 27) = B"00001" then -- j / jal, not read reg
             if ins(26) = '1' then -- jal
                 W <= B"11111";
-                WD <= pc;
+                WD <= pc + 4;
                 WRITE_REG <= '1';
             end if;
-            pc_to_write <= (25 downto 0 => ins(25 downto 0), others => '0');
+
+            ALUC <= B"0011";
+            A <= (25 downto 0 => ins(25 downto 0), others => '0');
+            B <= X"00000002";
+            wait for 100 ps;
+            pc_to_write <= S; 
         elsif ins(31 downto 26) = B"000000" then
             if ins(5) = '1' then
                 R1 <= ins(25 downto 21);
                 R2 <= ins(20 downto 16);
+
+                wait for 500 ps;
+
                 ALUC <= ins(3 downto 0);
+                A <= RD1;
+                B <= RD2;
 
                 wait for 100 ps;
 
-                A <= RD1;
-                B <= RD2;
                 W <= ins(15 downto 11);
                 WRITE_REG <= '1';
                 WD <= S;
             elsif ins(3) = '0' then
                 R1 <= ins(20 downto 16);
+
+                wait for 500 ps;
+
                 ALUC(3 downto 2) <= ins(1 downto 0);
                 ALUC(1 downto 0) <= B"11";
+                A <= RD1;
+                B <= (4 downto 0 => ins(10 downto 6), others => '0');
 
                 wait for 100 ps;
 
-                A <= RD1;
-                B <= (4 downto 0 => ins(10 downto 6), others => '0');
                 W <= ins(15 downto 11);
                 WRITE_REG <= '1';
                 WD <= S;
             else
                 R1 <= ins(25 downto 21);
-                WRITE_REG <= '0';
 
-                wait for 100 ps;
+                wait for 500 ps;
 
                 pc_to_write <= RD1;
             end if;
         else
             if ins(31) = '1' then
-                enable_mem <= '1';
                 R1 <= ins(25 downto 21);
+                R2 <= ins(20 downto 16);
+
+                wait for 500 ps;
+
                 ALUC <= B"0000";
+                A <= RD1;
+                B <= (15 downto 0 => ins(15 downto 0), others => '0' );
 
                 wait for 100 ps;
 
-                A <= RD1;
-                B <= (15 downto 0 => ins(15 downto 0), others => '0' );
                 if ins(29) = '1' then
-                    W <= ins(20 downto 16);
-                    write_mem <= '0';
-                else
                     R2 <= ins(20 downto 16);
-                    write_mem <= '1';
+                    mem_write <= '1';
+                    mem_w_addr <= S;
+                    mem_w_data <= RD2;
 
-                    wait for 100 ps;
+                else
+                    W <= ins(20 downto 16);
+                    mem_read <= '1';
+                    mem_r_addr <= S;
+
+                    wait for ram_clock_time * 2;
+
+                    WD <= mem_r_data;
+                    WRITE_REG <= '1';
                 end if;
             elsif ins(29 downto 26) = B"1111" then
                 WRITE_REG <= '1';
@@ -332,43 +413,42 @@ begin
                 WD(31 downto 16) <= ins(15 downto 0);
             elsif ins(29) = '1' then
                 R1 <= ins(25 downto 21);
+
+                wait for 500 ps;
+
                 ALUC <= ins(29 downto 26);
+                A <= RD1;
+                B(15 downto 0) <= ins(15 downto 0);
+                if ins(15) = '0' then
+                    B(31 downto 16) <= X"0000";
+                else
+                    B(31 downto 16) <= X"FFFF";
+                end if;
 
                 wait for 100 ps;
 
-                A <= RD1;
-                B(15 downto 0) <= ins(15 downto 0);
-                B(31 downto 16) <= X"0000";
                 W <= ins(20 downto 16);
                 WRITE_REG <= '1';
                 WD <= S;
             else
                 R1 <= ins(25 downto 21);
                 R2 <= ins(20 downto 16);
+                
+                wait for 500 ps;
+                
                 ALUC <= B"0010";
-                
-                wait for 100 ps;
-                
                 A <= RD1;
                 B <= RD2;
-                if Z = '1' then
-                    pc_to_write <= pc_to_write + to_integer(unsigned(ins(15 downto 0)) * 4);
+
+                wait for 100 ps;
+
+                if Z = '1' xor ins(26) = '1' then
+                    pc_to_write <= pc_to_write + to_integer(signed(ins(15 downto 0)) * 4);
                 end if;
                 WRITE_REG <= '0';
             end if;
         end if;
 
-        if enable_mem then
-            if write_mem then
-                WRITE_REG <= '0';
-                mem_w <= RD2;
-            else
-                WRITE_REG <= '1';
-                WD <= mem_r;
-            end if;
-        else
-            write_mem <= '0';
-        end if;
     end process;
 end architecture;
 
