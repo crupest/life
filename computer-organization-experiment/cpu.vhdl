@@ -112,7 +112,7 @@ begin
          else A xor B when ALUC(2 downto 0) ?= B"110"
          else std_logic_vector(signed(A) sll 16) and X"FFFF0000" when ALUC(2 downto 0) ?= B"110"
          else std_logic_vector(signed(A) sll to_integer(unsigned(B))) when ALUC ?= B"0011"
-         else std_logic_vector(signed(A) srl to_integer(unsigned(B))) when ALUC ?= B"0111"
+         else std_logic_vector(signed(A) srl to_integer(unsigned(B))) when ALUC ?= B"1011"
          else std_logic_vector(signed(A) sra to_integer(unsigned(B))) when ALUC ?= B"1111";
     Z <= S ?= X"00000000" after 10 ps;
 end architecture;
@@ -136,6 +136,7 @@ end entity;
 architecture Behavioral of ram is
     type memory_type is array (0 to 16#30#) of word;
     signal memory: memory_type := (
+/*
                 X"3c010000",
                 X"34240080",
                 X"20050004",
@@ -172,6 +173,28 @@ architecture Behavioral of ram is
                 X"00000027",
                 X"00000079",
                 X"00000115",
+*/
+                X"3C010000",
+                X"3421004C",
+                X"8C240000",
+                X"20210004",
+                X"8C250000",
+                X"20210004",
+                X"0C000009",
+                X"AC230000",
+                X"08000008",
+                X"20020010",
+                X"00001820",
+                X"30A60001",
+                X"10060001",
+                X"00641820",
+                X"00042040",
+                X"00052842",
+                X"2042FFFF",
+                X"1440FFF9",
+                X"03e00008",
+                X"0000C9AE",
+                X"0000F6E5",
                 others => (others => '0')
         );
 begin
