@@ -12,3 +12,6 @@ target_link_libraries(HistogramEqulization ${OpenCV_LIBS})
 
 add_executable(DiscreteFourierTransform DiscreteFourierTransform.cpp)
 target_link_libraries(DiscreteFourierTransform ${OpenCV_LIBS})
+
+add_executable(MorphologicalTransformation MorphologicalTransformation.cpp)
+target_link_libraries(MorphologicalTransformation ${OpenCV_LIBS})
