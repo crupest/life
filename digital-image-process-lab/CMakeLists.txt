@@ -15,3 +15,6 @@ target_link_libraries(DiscreteFourierTransform ${OpenCV_LIBS})
 
 add_executable(MorphologicalTransformation MorphologicalTransformation.cpp)
 target_link_libraries(MorphologicalTransformation ${OpenCV_LIBS})
+
+add_executable(HarrisCornerDetector HarrisCornerDetector.cpp)
+target_link_libraries(HarrisCornerDetector ${OpenCV_LIBS})
