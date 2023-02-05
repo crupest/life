@@ -131,6 +131,7 @@ void run(const std::string &program, std::vector<std::string> arguments,
     int poll_return = poll(&sigchld_poll, 1, timeout_value);
 
     if (poll_return == 0) {
+      kill(pid, SIGKILL);
       throw TimeoutError("Timeout to run command.");
     } else if (poll_return == -1) {
       if (errno == EINTR) {
