@@ -132,6 +132,20 @@ void run(const std::string &program, std::vector<std::string> arguments,
 
     if (poll_return == 0) {
       kill(pid, SIGKILL);
+
+      if (options.stop_reason) {
+        *options.stop_reason = StopReason::Killed;
+      }
+
+      if (options.before_reap_callback) {
+        options.before_reap_callback(pid);
+      }
+
+      // Reap child process.
+      if (waitpid(pid, nullptr, 0) == -1) {
+        throw std::runtime_error("Failed to reap child process. Reason: " +
+                                 get_errno_message());
+      }
       throw TimeoutError("Timeout to run command.");
     } else if (poll_return == -1) {
       if (errno == EINTR) {
